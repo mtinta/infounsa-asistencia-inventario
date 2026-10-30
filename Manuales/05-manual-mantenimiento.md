@@ -18,6 +18,7 @@ Este manual describe cómo mantener en operación las APIs de Asistencia e Inven
 10. [Problemas frecuentes](#10-problemas-frecuentes)
 11. [Recuperación ante desastres](#11-recuperación-ante-desastres)
 12. [Registro de mantenimiento](#12-registro-de-mantenimiento)
+13. [Anexo A. Estructura del repositorio](#anexo-a-estructura-del-repositorio)
 
 ---
 
@@ -323,3 +324,197 @@ Anota cada intervención para tener trazabilidad:
 |  |  |  |  |  |  |
 |  |  |  |  |  |  |
 |  |  |  |  |  |  |
+
+---
+
+## Anexo A. Estructura del repositorio
+
+Este anexo indica qué contiene cada carpeta y archivo importante, para saber **dónde buscar o modificar** al dar mantenimiento. Las carpetas de dependencias (`node_modules`) y de compilación (`dist`, `dist-electron`) se generan al instalar y compilar; no se versionan.
+
+### A.1. Vista general
+
+```text
+infounsa-asistencia-inventario/
+├── apps/
+│   ├── asistencia/
+│   │   ├── api/               API de Asistencia (NestJS), :43000
+│   │   ├── desktop/           Kiosco de Asistencia (Electron)
+│   │   └── database/          Scripts SQL de referencia
+│   ├── inventario/
+│   │   ├── api/               API de Inventario (NestJS), :43001
+│   │   ├── desktop/           App de Inventario (Electron)
+│   │   └── database/init/     SQL del esquema y triggers
+│   └── portal-general/        Página de enlace (opcional)
+├── packages/
+│   ├── shared-config/         MySQL, logs, guardas y roles
+│   ├── shared-types/          Tipos TypeScript comunes
+│   └── shared-ui/             Componentes y cliente HTTP
+├── scripts/                   Servidores, servicios, respaldos
+├── infra/                     Dockerfiles y configuración
+├── windows-server-deploy/     Despliegue con contenedores (alt.)
+├── qa/                        Pruebas de sistema y Postman
+├── tools/                     Pipeline local y seguridad
+├── docs/                      Guías de despliegue y operación
+├── Manuales/                  Manuales (Markdown y PDF)
+├── docker-compose.yml         Desarrollo/pruebas con Docker
+├── docker-compose.prod.yml    Producción con Docker
+├── .env.example               Plantilla de variables
+├── package.json, pnpm-*.yaml  Monorepo y paquetes
+└── README.md                  Inicio e instalación
+```
+
+### A.2. API de Asistencia — `apps/asistencia/api/`
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `src/main.ts` | Arranque de la API: puerto, CORS (`ASISTENCIA_ALLOWED_ORIGINS`), validaciones y logs |
+| `src/app.module.ts` | Módulo raíz que registra todos los módulos |
+| `src/modules/attendance/` | **Marcaciones:** registro, sincronización por lotes desde los kioscos, reportes PDF y Excel, DTOs de validación |
+| `src/modules/auth/` | Inicio de sesión, emisión y validación de tokens JWT |
+| `src/modules/users/` | Usuarios y personal (alta, edición, baja) y **carga masiva desde Excel** |
+| `src/modules/sedes/` · `terminals/` | Sedes y terminales (kioscos) |
+| `src/modules/barcode/` | Lectura y simulación de códigos de barras (página `barcode-scanner.html` de pruebas) |
+| `src/modules/stats/` | Estadísticas en tiempo real para el panel (WebSocket) |
+| `src/modules/health/` | Endpoint `/health` (estado de la API y de la base de datos) |
+| `src/common/auth/` | Secreto JWT, guardas de autenticación y de roles |
+| `src/common/database/` | Conexión a MySQL, cliente Prisma y reintentos de transacciones |
+| `src/common/logging/` | Configuración de Winston: archivos de log, rotación 20 MB / 14 días |
+| `prisma/schema.prisma` | **Esquema de la base de datos** (tablas y relaciones) |
+| `prisma/seed.ts` · `data-usuarios.json` | Datos iniciales: roles, sede, terminal y usuarios `admin` y `operador_ast` |
+| `prisma/migrations/` | Migraciones históricas (no se usan para instalar; ver manual 01) |
+| `prisma.config.ts` | Configuración de Prisma (lee `DATABASE_URL`) |
+| `scripts/test-mysql-integration.mjs` | Prueba de integración contra MySQL real |
+| `*.spec.ts` (junto a cada archivo) | Pruebas unitarias (Jest): `npm test` |
+| `.env` *(no versionado)* | Configuración local de la instalación |
+
+### A.3. API de Inventario — `apps/inventario/api/`
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `src/main.ts` · `app.module.ts` | Arranque de la API (puerto 43001, CORS) y módulo raíz |
+| `src/inventory-items/` | **Catálogo de bienes:** alta, edición, búsqueda, código automático |
+| `src/inventory-movements/` | **Movimientos de almacén:** entradas y salidas, control de stock, alertas de stock crítico, reportes PDF y Excel, sincronización desde los clientes |
+| `src/categories/` · `areas/` | Categorías y áreas |
+| `src/users/` | Usuarios y operadores |
+| `src/auth/` | Inicio de sesión, JWT, guardas y roles |
+| `src/health/` | Endpoint `/health` |
+| `src/prisma/` | Conexión Prisma a MySQL |
+| `src/config/` | Conexión MySQL y configuración de logs (Winston) |
+| `src/middlewares/` | Registro de peticiones HTTP |
+| `prisma/schema.prisma` | Modelo de datos usado por la API |
+| `prisma/seed.ts` | Datos iniciales: usuarios `admin` y `almacenero` |
+| `prisma/seed_30_inventarios.sql` | Datos de ejemplo de bienes (solo pruebas) |
+| `../database/init/001_*.sql` · `002_*.sql` | **Creación real del esquema**, *triggers* y reglas de integridad (stock no negativo) |
+
+### A.4. Aplicaciones de escritorio — `apps/asistencia/desktop/` y `apps/inventario/desktop/`
+
+Tienen la misma organización:
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `main.js` | **Proceso principal de Electron:** ventana, base local cifrada, comunicación con la API y motor de sincronización |
+| `preload.js` | Puente seguro entre la interfaz y el proceso principal |
+| `schema.sql` | Esquema de la base local SQLite cifrada (SQLCipher) |
+| `desktop-config.json` | Configuración inicial (dirección del servidor) |
+| `database.js` *(Asistencia)* | Utilidades de la base local |
+| `reset-local-data.js` *(Asistencia)* | Solo desarrollo: borra los datos locales del equipo (`npm run reset:local-data`) |
+| `src/main/persistence/` | Acceso a la base local (adaptador SQLite) |
+| `src/main/security/` | Clave de cifrado local, sesión, contraseña sin conexión, validación de origen de mensajes |
+| `src/main/sync/` *(Asistencia)* | Cliente de sincronización con la API |
+| `src/App.tsx` · `main.tsx` · `App.css` | Interfaz React: pantalla principal y estilos |
+| `src/hooks/` | Lógica de datos y sesión (`useAttendanceData`, `useInventoryData`, `useSyncQueue`, escáner de códigos) |
+| `src/utils/` | Cliente HTTP y validadores |
+| `src/types/` | Tipos TypeScript |
+| `src/ErrorBoundary.tsx` | Captura de errores de la interfaz |
+| `vite.config.ts` · `tsconfig.json` | Compilación de la interfaz |
+| `package.json` | Dependencias y configuración de **electron-builder** (instalador NSIS) |
+
+Pantallas (`src/components/`):
+
+| Aplicación | Carpetas |
+| :--- | :--- |
+| **Asistencia** | `kiosk/` marcación de asistencia · `dashboard/` panel principal · `log/` registro del día · `sync/` cola de sincronización · `reports/` reportes · `admin/` carga masiva · `settings/` ajustes y operadores · `ui/` elementos comunes (modal, teclado táctil, tooltips, registro de visitantes) · `WebcamScanner.tsx` lector por cámara |
+| **Inventario** | `dashboard/` panel principal · `catalog/` catálogo de bienes y carga desde Excel · `movements/` entradas y salidas · `alerts/` alertas de stock · `reports/` reportes · `operators/` usuarios · `settings/` ajustes · `ui/` elementos comunes |
+
+### A.5. Bases de datos — `apps/*/database/`
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `apps/inventario/database/init/` | Scripts SQL que **crean** el esquema de Inventario (se ejecutan en la instalación) |
+| `apps/asistencia/database/init/` | Scripts SQL históricos de Asistencia (**no usar** para instalar: el esquema de Asistencia lo crea Prisma) |
+| `apps/asistencia/database/sqlite-referencia/` | Referencia del esquema local SQLite y scripts de prueba en Python |
+
+### A.6. Paquetes compartidos — `packages/`
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `shared-config/src/database/` | Opciones de conexión a MySQL (incluye las variables `MYSQL_SSL*`) |
+| `shared-config/src/logging/` | Configuración común de logs |
+| `shared-config/src/auth/` | Decoradores y guardas de roles y de rutas públicas |
+| `shared-types/src/` | Tipos y errores compartidos, y la definición de la API de Electron |
+| `shared-ui/src/` | Notificaciones (`ToastProvider`), captura de errores y cliente HTTP |
+
+### A.7. Scripts de operación — `scripts/`
+
+| Script | Para qué sirve |
+| :--- | :--- |
+| `iniciar-servidores.sh` / `.ps1` · `detener-servidores.sh` / `.ps1` | Iniciar y detener las dos APIs en segundo plano |
+| `instalar-servicios-nssm.ps1` | Instalar las APIs como servicios de Windows con NSSM |
+| `instalar-autoarranque.sh` / `.ps1` | Inicio automático al reiniciar (systemd en Linux, tarea programada en Windows) |
+| `respaldar-bases.ps1` | Respaldo de las bases con `mysqldump` y limpieza de respaldos antiguos |
+| `generar-instaladores-windows.ps1` / `.sh` · `build-desktop-installers.ps1` | Generar los instaladores `.exe` de los kioscos en `instaladores\` |
+| `generar-manuales-pdf.py` · `manuales-a-pdf.js` | Generar los PDF de la carpeta `Manuales/pdf/` |
+| `validate-all.ps1` · `run-inventario-cpi.ps1` | Validaciones y pruebas de integración locales |
+| `publish-to-gitlab.ps1` | Publicación de instaladores en GitLab (uso interno del equipo) |
+| `backup/` · `maintenance/` · `seed/` · `setup/` | Carpetas reservadas (vacías) |
+
+### A.8. Infraestructura y despliegue
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `docker-compose.yml` | Entorno de desarrollo/pruebas: bases MySQL, APIs, Adminer y portal general |
+| `docker-compose.prod.yml` | Producción con Docker (imágenes publicadas por el pipeline) |
+| `docker-compose.asistencia-inventario.qa.yml` | Entorno aislado para pruebas de calidad |
+| `infra/docker/` | Dockerfiles de las APIs y del cliente de Inventario |
+| `infra/nginx/` · `infra/compose/` | Configuración de Nginx y fragmentos de Compose |
+| `windows-server-deploy/` | Despliegue alternativo con contenedores en Windows Server y registro de tarea de inicio |
+| `start-backend-windows.ps1` | Inicio nativo de las APIs en Windows (con PM2 si está disponible) |
+| `.gitlab-ci.yml` | Definición del pipeline de integración continua (GitLab) |
+| `.env.example` | Plantilla de variables de entorno |
+
+### A.9. Pruebas y herramientas — `qa/` y `tools/`
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `qa/scripts-pruebas-de-sistema/` | Pruebas de sistema con Playwright (casos `cps-*` de Asistencia e Inventario) y generador de reporte Excel |
+| `qa/postman/` | Colecciones Postman/Newman de pruebas de integración de las APIs y archivos de prueba (`fixtures/`) |
+| `qa/inventario/` | Script para ejecutar pruebas de Inventario en Docker |
+| `tools/dev/` | Pipeline local de validación (`run-local-ci.ps1`, `run-local-pipeline.ps1`, `validate-docker-asistencia-inventario.ps1`) |
+| `tools/security/semgrep-rules.yml` | Reglas de análisis estático de seguridad |
+
+### A.10. Documentación — `docs/` y `Manuales/`
+
+| Ruta | Qué contiene |
+| :--- | :--- |
+| `Manuales/01` y `02` | Manuales técnicos de instalación de cada API |
+| `Manuales/03` y `04` | Manuales de usuario de Asistencia e Inventario |
+| `Manuales/05` | Este manual de mantenimiento |
+| `Manuales/Anexo-servicios-windows.md` | Detalle de servicios de Windows (NSSM y tarea programada) |
+| `Manuales/pdf/` · `Manuales/img/` | Versiones PDF y capturas de pantalla |
+| `docs/despliegue/` | Guías de despliegue en producción, migración a MySQL, Windows Server y vuelta atrás |
+| `docs/operacion/` | Manual de usuario final, datos de prueba, respaldos y monitoreo (documentos de una versión anterior; **el procedimiento vigente es el de este manual**) |
+| `docs/excel-ejemplos/` | Plantillas Excel de ejemplo para la carga masiva |
+| `docs/Guía de instalación y despliegue*.md/.pdf` | Guías de instalación de cada API |
+
+**Dónde tocar según la tarea:**
+
+| Quiero… | Voy a… |
+| :--- | :--- |
+| Cambiar una regla de negocio de marcaciones o de stock | `apps/asistencia/api/src/modules/attendance/` o `apps/inventario/api/src/inventory-movements/` |
+| Agregar un campo a una tabla | Esquema (`prisma/schema.prisma`; en Inventario también `database/init/*.sql`) y la interfaz correspondiente |
+| Cambiar un texto o una pantalla de una aplicación | `apps/*/desktop/src/components/<pantalla>/` |
+| Cambiar cómo se sincroniza un kiosco | `apps/*/desktop/main.js` y `src/main/` |
+| Ajustar permisos o roles | `packages/shared-config/src/auth/` y los controladores del módulo |
+| Cambiar la rotación de logs | `src/common/logging/winston.config.ts` (Asistencia) o `src/config/winston.config.ts` (Inventario) |
+| Ajustar el instalador (nombre, accesos directos) | `apps/*/desktop/package.json`, sección `build` |
+| Cambiar puertos o dirección de la base de datos | `.env` de cada API (no se edita el código) |
