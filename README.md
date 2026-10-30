@@ -211,23 +211,25 @@ Para un servidor Windows con contenedores revisa `start-backend-windows.ps1` y l
 
 ## 5. Generar instaladores de Windows
 
-Desde **Windows**, en PowerShell, en la raíz del repositorio:
+Desde **Windows**, en PowerShell como administrador, en la raíz del repositorio:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\generar-instaladores-windows.ps1
 ```
 
-El script instala dependencias, recompila el módulo nativo para Electron, empaqueta con `electron-builder` (NSIS) y deja en la carpeta **`instaladores/`**:
+El script instala las dependencias (`pnpm install`), compila los paquetes compartidos, empaqueta con `electron-builder` (NSIS) y deja en la carpeta **`instaladores/`**:
 
 - `InfoUNSA-Asistencia-Setup-<versión>-x64.exe`
 - `InfoUNSA-Inventario-Setup-<versión>-x64.exe`
-- `release-manifest.json` (tamaño, SHA-256 y estado de firma de cada instalador)
+- `release-manifest.json` (versión, tamaño, SHA-256 y estado de firma de cada instalador)
 
-Desde Linux existe `scripts/generar-instaladores-windows.sh`, pero requiere `wine` y la compilación cruzada del módulo nativo es menos fiable; se recomienda compilar en Windows.
+Para generar solo uno: `pnpm --filter infounsa-asistencia-desktop run dist` (o `infounsa-inventario-desktop`). Procedimiento completo, verificación, instalación en kioscos y problemas frecuentes: [Manual de generación de instaladores](Manuales/06-manual-generacion-instaladores.md).
+
+Desde Linux existe `scripts/generar-instaladores-windows.sh`, pero requiere `wine`; los instaladores de entrega deben generarse en Windows.
 
 > Los instaladores no están firmados digitalmente: Windows SmartScreen puede mostrar una advertencia ("Más información" → "Ejecutar de todas formas") hasta que se firmen con un certificado de firma de código.
 
-Tras instalar, indica la dirección del servidor en la pestaña de **Ajustes** de cada aplicación (`http://<ip-del-servidor>:43000` para Asistencia, `:43001` para Inventario); por defecto apunta a `localhost` (`desktop-config.json`). Inicia sesión con el administrador creado por el seed.
+Tras instalar, indica la dirección del servidor en la configuración de cada aplicación (`http://<ip-del-servidor>:43000` para Asistencia, `:43001` para Inventario); por defecto apunta a `localhost`. Inicia sesión con el administrador creado por el seed.
 
 ---
 
@@ -311,7 +313,7 @@ El archivo `.env` contiene secretos: **nunca lo subas al repositorio** (ya está
 
 ## 10. Documentación y solución de problemas
 
-- **Manuales** (carpeta [Manuales/](Manuales/README.md), en Markdown y PDF): manual técnico de instalación de cada API (con firewall y conversión en servicio por NSSM o script), manual de usuario de Asistencia y de Inventario, manual de mantenimiento (respaldos, logs, actualizaciones, recuperación) y anexo de servicios de Windows.
+- **Manuales** (carpeta [Manuales/](Manuales/README.md), en Markdown y PDF): manual técnico de instalación de cada API (con firewall y conversión en servicio por NSSM o script), manual de usuario de Asistencia y de Inventario, manual de mantenimiento (respaldos, logs, actualizaciones, recuperación), manual de generación de instaladores de Windows y anexo de servicios de Windows.
 - **Despliegue:** `docs/despliegue/manual-de-implementacion-e-instalacion.md`, `docs/despliegue/DESPLIEGUE_PRODUCCION.md`, `docs/despliegue/ROLLBACK.md`.
 - **Operación:** `docs/operacion/` (manual de usuario final, copias de seguridad y restauración, monitoreo).
 - **Manuales de usuario:** `docs/Manual de Usuario Asistencia.docx.pdf`, `docs/manual corporativo_ok.pdf`.

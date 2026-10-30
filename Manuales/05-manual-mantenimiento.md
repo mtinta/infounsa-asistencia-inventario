@@ -196,7 +196,7 @@ Comprueba `/health` de ambas APIs y que el kiosco inicia sesión y sincroniza. *
 
 ### 6.2. Kioscos (aplicaciones de escritorio)
 
-Ejecuta el instalador nuevo (`InfoUNSA-Asistencia-Setup-<versión>-x64.exe` o `InfoUNSA-Inventario-Setup-<versión>-x64.exe`) **sobre el existente**. Los datos locales (marcas o movimientos pendientes, sesión, configuración) se conservan; no hay que desinstalar ni borrar carpetas. Las versiones nuevas se generan como se describe en el `README.md` (sección *Generar instaladores de Windows*).
+Ejecuta el instalador nuevo (`InfoUNSA-Asistencia-Setup-<versión>-x64.exe` o `InfoUNSA-Inventario-Setup-<versión>-x64.exe`) **sobre el existente**. Los datos locales (marcas o movimientos pendientes, sesión, configuración) se conservan; no hay que desinstalar ni borrar carpetas. Las versiones nuevas se generan como se describe en el [manual 06](06-manual-generacion-instaladores.md).
 
 Actualiza primero un kiosco, verifica que sincroniza, y luego el resto.
 
@@ -462,7 +462,7 @@ Pantallas (`src/components/`):
 | `instalar-servicios-nssm.ps1` | Instalar las APIs como servicios de Windows con NSSM |
 | `instalar-autoarranque.sh` / `.ps1` | Inicio automático al reiniciar (systemd en Linux, tarea programada en Windows) |
 | `respaldar-bases.ps1` | Respaldo de las bases con `mysqldump` y limpieza de respaldos antiguos |
-| `generar-instaladores-windows.ps1` / `.sh` · `build-desktop-installers.ps1` | Generar los instaladores `.exe` de los kioscos en `instaladores\` |
+| `generar-instaladores-windows.ps1` / `.sh` · `build-desktop-installers.ps1` | Generar los instaladores `.exe` de los kioscos en `instaladores\` (manual 06) |
 | `generar-manuales-pdf.py` · `manuales-a-pdf.js` | Generar los PDF de la carpeta `Manuales/pdf/` |
 | `validate-all.ps1` · `run-inventario-cpi.ps1` | Validaciones y pruebas de integración locales |
 | `publish-to-gitlab.ps1` | Publicación de instaladores en GitLab (uso interno del equipo) |
@@ -499,6 +499,7 @@ Pantallas (`src/components/`):
 | `Manuales/01` y `02` | Manuales técnicos de instalación de cada API |
 | `Manuales/03` y `04` | Manuales de usuario de Asistencia e Inventario |
 | `Manuales/05` | Este manual de mantenimiento |
+| `Manuales/06` | Generación de los instaladores de Windows |
 | `Manuales/Anexo-servicios-windows.md` | Detalle de servicios de Windows (NSSM y tarea programada) |
 | `Manuales/pdf/` · `Manuales/img/` | Versiones PDF y capturas de pantalla |
 | `docs/despliegue/` | Guías de despliegue en producción, migración a MySQL, Windows Server y vuelta atrás |
