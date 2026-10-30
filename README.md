@@ -321,6 +321,8 @@ El archivo `.env` contiene secretos: **nunca lo subas al repositorio** (ya está
 | :--- | :--- |
 | `docker compose ... --wait` se queda esperando | Revisa `docker compose logs asistencia-db` y que las contraseñas de `.env` estén completas. |
 | La API cierra al arrancar | Consulta `.run/logs/*.log`; casi siempre es `DATABASE_URL` incorrecta o la base aún iniciando. |
+| `ERR_PNPM_IGNORED_BUILDS` al instalar | pnpm bloquea scripts no aprobados: actualiza el repositorio (`git pull`) o ejecuta `pnpm approve-builds --all` y repite `pnpm install` |
+| Error al compilar `Cannot find module '@infounsa/shared-config'` | Compila los paquetes compartidos: `pnpm build:packages` |
 | `pnpm install` falla con `TypeError: ... styleText is not a function` o `Unsupported engine` | Tu versión de Node es antigua (p. ej. 18). Instala Node 22.12+ o 24 LTS, abre una terminal nueva, comprueba `node -v` y repite `pnpm install` |
 | `Cannot find module ... prisma/generated` | Ejecuta `pnpm install` (el `postinstall` corre `prisma generate`). |
 | Error de compilación de `sqlcipher` en Windows | Instala Visual Studio Build Tools (C++) y Python 3, y vuelve a ejecutar el script de instaladores. |

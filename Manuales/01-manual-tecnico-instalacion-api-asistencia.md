@@ -155,6 +155,11 @@ pnpm install
 
 > La instalación ejecuta `prisma generate` en cada API y lee `DATABASE_URL` del `.env`; por eso el archivo se crea **antes** (paso c). Si `pnpm install` falla en `prisma generate`, comprueba que el `.env` exista en `apps\<modulo>\api`.
 >
+> **Resultado esperado:** `pnpm install` debe terminar **sin errores** (puede mostrar avisos `WARN` de paquetes obsoletos, que son normales). Durante la instalación se compilan los módulos nativos (SQLite cifrado, `bcrypt`, Prisma) y, al final, los paquetes compartidos del repositorio (`packages\*`).
+>
+> - Si aparece `ERR_PNPM_IGNORED_BUILDS` ("Ignored build scripts"), tu copia del repositorio es anterior a la corrección: actualízala (`git pull`) y repite `pnpm install`. Como alternativa inmediata ejecuta `pnpm approve-builds --all` y luego `pnpm install`.
+> - Si más adelante la compilación de la API falla con `Cannot find module '@infounsa/shared-config'` o `has no exported member 'Roles'`, compila los paquetes compartidos: `pnpm build:packages` (desde la raíz del repositorio).
+
 > El comando instala las dependencias de **todo** el repositorio (ambas APIs y los clientes): si ya lo ejecutaste al instalar el otro módulo, no hace falta repetirlo. Si instalas el segundo módulo después, crea también su `.env` (paso c) y ejecuta `pnpm install` de nuevo solo si la instalación anterior falló.
 
 ### e. Esquema y datos iniciales
@@ -359,6 +364,8 @@ Restaurar (PowerShell): `Get-Content respaldo-asistencia-AAAAMMDD.sql | mysql -u
 | La API se cierra al arrancar | Revisa `.run\logs\*.err.log`. Suele faltar `JWT_SECRET` o `DATABASE_URL` en el `.env` de `apps\asistencia\api`. |
 | `EADDRINUSE` | El puerto 43000 está ocupado: `Get-NetTCPConnection -LocalPort 43000` y `Stop-Process -Id <PID>`. |
 | El servicio se detiene al instante | Falta el `.env`, no se compiló (`dist\main.js`) o `node` no está en el `PATH` del sistema. |
+| `ERR_PNPM_IGNORED_BUILDS` al ejecutar `pnpm install` | pnpm bloquea los scripts de instalación no aprobados. Actualiza el repositorio (`git pull`) o ejecuta `pnpm approve-builds --all` y repite `pnpm install` |
+| `Cannot find module '@infounsa/shared-config'` / `no exported member 'Roles'` al compilar | Faltan los paquetes compartidos compilados: `pnpm build:packages` en la raíz del repositorio |
 | `styleText is not a function` o `Unsupported engine` al ejecutar `pnpm install` | Node es demasiado antiguo (v18/v20 viejo). Instala Node 24 LTS, abre una terminal nueva, verifica `node -v` y repite `pnpm install` |
 | `Cannot find module ... generated/prisma` | Ejecuta `pnpm install` en la raíz (genera el cliente de Prisma). |
 | Las apps no se conectan desde otros equipos | Falta la regla de firewall (sección g) o el origen no está en `ASISTENCIA_ALLOWED_ORIGINS`. |
