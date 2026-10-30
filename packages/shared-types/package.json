@@ -21,6 +21,6 @@
     "src"
   ],
   "scripts": {
-    "build": "tsc && cp src/electron-api.d.ts dist/"
+    "build": "tsc && node -e \"require('fs').copyFileSync('src/electron-api.d.ts','dist/electron-api.d.ts')\""
   }
 }

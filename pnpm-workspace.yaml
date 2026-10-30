@@ -1,3 +1,17 @@
 packages:
   - 'apps/*/*'
   - 'packages/*'
+
+# pnpm no ejecuta los scripts de instalacion de las dependencias salvo que se aprueben aqui.
+# true  = necesario (modulos nativos: SQLCipher, bcrypt, motores de Prisma, esbuild, etc.)
+# false = denegado de forma explicita (no es necesario; evita el error ERR_PNPM_IGNORED_BUILDS)
+allowBuilds:
+  '@journeyapps/sqlcipher': true
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  bcrypt: true
+  esbuild: true
+  prisma: true
+  unrs-resolver: true
+  '@nestjs/core': false
+  electron-winstaller: false
