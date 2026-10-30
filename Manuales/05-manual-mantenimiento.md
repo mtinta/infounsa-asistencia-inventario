@@ -302,10 +302,10 @@ No borres filas de `attendance`, `inventory_movements` ni `audit_logs` para "lib
 
 **Servidor perdido o dañado:**
 
-1. Prepara un servidor nuevo e instala los requisitos (MySQL, Node.js, pnpm, Git, NSSM) siguiendo los manuales 01 y 02, **hasta el paso e** (sin crear aún las tablas).
-2. Restaura los `.env` guardados (o recréalos con los mismos secretos JWT para no cerrar sesiones).
-3. Crea las bases y el usuario (paso c) y **restaura los respaldos** (sección 5.3) en lugar de ejecutar el esquema y el seed.
-4. Compila, crea la regla de firewall y los servicios (pasos e, f, g).
+1. Prepara un servidor nuevo, instala los requisitos (MySQL, Node.js, pnpm, Git, NSSM) y clona el repositorio, siguiendo los manuales 01 y 02 (paso a).
+2. Crea las bases y el usuario (paso b), **sin** ejecutar los scripts de esquema de Inventario.
+3. Restaura los `.env` guardados (paso c; o recréalos con los mismos secretos JWT para no cerrar sesiones) e instala las dependencias (paso d).
+4. **Restaura los respaldos** (sección 5.3) en lugar de ejecutar el esquema y el seed (paso e). Después compila, crea la regla de firewall y los servicios (pasos f, g, h).
 5. Si el servidor nuevo tiene otra dirección IP, actualiza la URL en *Ajustes* de cada kiosco (o reutiliza la IP anterior).
 6. Comprueba `/health` y que los kioscos sincronizan lo pendiente.
 

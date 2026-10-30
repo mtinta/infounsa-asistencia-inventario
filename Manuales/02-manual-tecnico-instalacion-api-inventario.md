@@ -7,7 +7,7 @@ Instala la API de Inventario (NestJS + Prisma + MySQL) en el puerto **43001** y 
 ## Contenido
 
 1. [Requerimientos](#1-requerimientos)
-2. [Instalación](#2-instalación): a) Clonar · b) Dependencias · c) Base de datos · d) Archivo `.env` · e) Compilación y ejecución · f) Regla de Firewall · g) Conversión en un servicio
+2. [Instalación](#2-instalación): a) Clonar · b) Base de datos · c) Archivo `.env` · d) Dependencias · e) Datos iniciales · f) Compilación y ejecución · g) Regla de Firewall · h) Conversión en un servicio
 3. [Actualización y respaldos](#3-actualización-y-respaldos)
 4. [Problemas frecuentes](#4-problemas-frecuentes)
 
@@ -20,7 +20,7 @@ Instala la API de Inventario (NestJS + Prisma + MySQL) en el puerto **43001** y 
 | MySQL Installer (MySQL Server) | 8.0.46 | <https://dev.mysql.com/get/Downloads/MySQLInstaller/mysql-installer-community-8.0.46.0.msi> |
 | Node.js LTS | 24.18.0 (mínimo 22.12) | <https://nodejs.org/dist/v24.18.0/node-v24.18.0-x64.msi> |
 | pnpm | 9 o superior | `npm install -g pnpm` (después de instalar Node.js) |
-| NSSM (*Non-Sucking Service Manager*) | última | <https://nssm.cc/download> (solo para el método 1 de la sección g) |
+| NSSM (*Non-Sucking Service Manager*) | última | <https://nssm.cc/download> (solo para el método 1 de la sección h) |
 | Git para Windows | 2.55 | <https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.2/Git-2.55.0.2-64-bit.exe> |
 
 Durante la instalación de Node.js deja marcada la opción **Add to PATH** (necesaria para que el servicio encuentre `node`).
@@ -32,7 +32,7 @@ node -v     # debe mostrar v22.12 o superior (se recomienda v24.x)
 pnpm -v     # 9 o superior
 ```
 
-> Con una versión antigua de Node (por ejemplo v18) `pnpm install` falla en el paso `prisma generate` con `TypeError: ... styleText is not a function`. Instala Node 24 LTS y repite el paso b.
+> Con una versión antigua de Node (por ejemplo v18) `pnpm install` falla en el paso `prisma generate` con `TypeError: ... styleText is not a function`. Instala Node 24 LTS y repite el paso d.
 
 ---
 
@@ -50,16 +50,7 @@ cd infounsa-asistencia-inventario
 
 (Si se te indicó una rama específica: `git fetch origin` y `git switch --track origin/<rama>`.)
 
-### b. Instalación de dependencias
-
-Desde la **raíz** del repositorio (el proyecto es un monorepo con paquetes compartidos, por eso se usa `pnpm` y no `npm install` dentro de la carpeta de la API):
-
-```powershell
-cd C:\Plataforma\infounsa-asistencia-inventario
-pnpm install
-```
-
-### c. Configuración de la base de datos
+### b. Configuración de la base de datos
 
 1. Abre **MySQL 8.0 Command Line Client** (o tu gestor de base de datos) e ingresa con la contraseña definida al instalar MySQL.
 2. Crea la base de datos vacía y compruébala:
@@ -93,9 +84,10 @@ pnpm install
 
    > Inventario **no** usa migraciones de Prisma: no ejecutes `prisma migrate deploy` ni `prisma db pull`.
 
-### d. Creación del archivo `.env`
 
-La API lee el archivo `.env` de su propia carpeta. En PowerShell:
+### c. Creación del archivo `.env`
+
+La API lee el archivo `.env` de su propia carpeta. Se crea **antes de instalar las dependencias** (paso d), porque la instalación genera el cliente de Prisma y necesita `DATABASE_URL`. En PowerShell:
 
 ```powershell
 cd C:\Plataforma\infounsa-asistencia-inventario\apps\inventario\api
@@ -112,7 +104,28 @@ INVENTARIO_ALLOWED_ORIGINS=http://localhost:43001,http://127.0.0.1:43001
 > Si la contraseña contiene `@`, `:`, `/` o `#`, escríbela codificada en la URL (por ejemplo `@` → `%40`).
 > Agrega a `INVENTARIO_ALLOWED_ORIGINS` el origen de cualquier aplicación web que consuma la API (separados por comas).
 
-Verifica que se lee correctamente (debe mostrar usuario, contraseña, puerto y base):
+### d. Instalación de dependencias
+
+Desde la **raíz** del repositorio (el proyecto es un monorepo con paquetes compartidos, por eso se usa `pnpm` y no `npm install` dentro de la carpeta de la API):
+
+```powershell
+cd C:\Plataforma\infounsa-asistencia-inventario
+pnpm install
+```
+
+> La instalación ejecuta `prisma generate` en cada API y lee `DATABASE_URL` del `.env`; por eso el archivo se crea **antes** (paso c). Si `pnpm install` falla en `prisma generate`, comprueba que el `.env` exista en `apps\<modulo>\api`.
+>
+> El comando instala las dependencias de **todo** el repositorio (ambas APIs y los clientes): si ya lo ejecutaste al instalar el otro módulo, no hace falta repetirlo. Si instalas el segundo módulo después, crea también su `.env` (paso c) y ejecuta `pnpm install` de nuevo solo si la instalación anterior falló.
+
+### e. Datos iniciales
+
+Con las dependencias ya instaladas, entra a la carpeta de la API:
+
+```powershell
+cd C:\Plataforma\infounsa-asistencia-inventario\apps\inventario\api
+```
+
+Verifica que el `.env` se lee correctamente (debe mostrar usuario, contraseña, puerto y base):
 
 ```powershell
 node -e "require('dotenv').config(); console.log(process.env.DATABASE_URL)"
@@ -126,7 +139,7 @@ npm run db:seed
 
 Es seguro volver a ejecutar el seed: no cambia las contraseñas de usuarios existentes (para forzar su restablecimiento a `admin123` o a `SEED_ADMIN_PASSWORD`, ejecútalo con la variable `SEED_RESET_PASSWORDS=true`).
 
-### e. Compilación y ejecución del servidor
+### f. Compilación y ejecución del servidor
 
 En `C:\Plataforma\infounsa-asistencia-inventario\apps\inventario\api`:
 
@@ -148,7 +161,7 @@ En `C:\Plataforma\infounsa-asistencia-inventario\apps\inventario\api`:
 
 4. Comprueba en el navegador: `http://localhost:43001/health`. Detén el servidor con `Ctrl + C` antes de continuar con el servicio.
 
-### f. Regla de Firewall
+### g. Regla de Firewall
 
 Para que otros equipos de la red (los kioscos o aplicaciones de escritorio) lleguen a la API, crea la regla en PowerShell como administrador (cambia el nombre si lo deseas, y el puerto si usas otro):
 
@@ -169,7 +182,7 @@ Get-NetFirewallRule | Where-Object DisplayName -like "*43001*"
 
 > No abras el puerto 3306 (MySQL) hacia la red: solo la API debe conectarse a la base.
 
-### g. Conversión en un servicio
+### h. Conversión en un servicio
 
 Un servicio permite que la API arranque sola al encender o reiniciar el servidor y se levante si se cae. Hay **dos métodos**: elige uno.
 
@@ -302,4 +315,4 @@ Restaurar (PowerShell): `Get-Content respaldo-inventario-AAAAMMDD.sql | mysql -u
 | El servicio se detiene al instante | Falta el `.env`, no se compiló (`dist\main.js`) o `node` no está en el `PATH` del sistema. |
 | `styleText is not a function` o `Unsupported engine` al ejecutar `pnpm install` | Node es demasiado antiguo (v18/v20 viejo). Instala Node 24 LTS, abre una terminal nueva, verifica `node -v` y repite `pnpm install` |
 | `Cannot find module ... generated/prisma` | Ejecuta `pnpm install` en la raíz (genera el cliente de Prisma). |
-| Las apps no se conectan desde otros equipos | Falta la regla de firewall (sección f) o el origen no está en `INVENTARIO_ALLOWED_ORIGINS`. |
+| Las apps no se conectan desde otros equipos | Falta la regla de firewall (sección g) o el origen no está en `INVENTARIO_ALLOWED_ORIGINS`. |
