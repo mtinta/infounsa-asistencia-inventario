@@ -130,6 +130,10 @@ dir .env*
 
 Deben aparecer `.env` y `.env.example`. Si ves `.env.txt`, renómbralo: `ren .env.txt .env`.
 
+> **Importante: el Explorador de Windows no puede crear ni renombrar un archivo llamado `.env`** (muestra el error "Debes escribir un nombre de archivo", porque el nombre empieza con punto y no tiene nada antes). Por eso el archivo se crea **desde la consola** con `copy` (y se abre con `notepad .env`), que sí lo permiten. No uses clic derecho > Nuevo > Documento de texto.
+>
+> Si prefieres usar *Guardar como* en el Bloc de notas: en **Tipo** elige **Todos los archivos (\*.\*)** y escribe el nombre **entre comillas**: `".env"`. Si no, Windows guarda `.env.txt`. Conviene activar **Vista > Mostrar > Extensiones de nombre de archivo** en el Explorador para ver las extensiones reales.
+
 > **Notas:**
 > - Si la contraseña de MySQL tiene caracteres especiales (`@`, `:`, `/`, `#`, `%`), escríbelos codificados en la URL (por ejemplo `@` → `%40`, `#` → `%23`) o usa una contraseña sin ellos.
 > - No guardes el archivo como "UTF-8 con BOM" (en el Bloc de notas antiguo, no cambies la codificación al guardar): impide leer la primera variable.
