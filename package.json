@@ -3,11 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Monorepo de Plataforma InfoUNSA (Asistencia, Inventario, Portales y Paquetes Compartidos)",
-  "workspaces": [
-    "apps/*",
-    "apps/*/*",
-    "packages/*"
-  ],
+  "engines": {
+    "node": "^20.19 || ^22.12 || >=24.0"
+  },
   "scripts": {
     "build:packages": "pnpm -r --filter \"./packages/**\" run build",
     "build:apps": "pnpm -r --filter \"./apps/**\" run build",

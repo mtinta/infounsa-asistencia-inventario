@@ -42,7 +42,7 @@ graph LR
 
 | Herramienta | Versión | Para qué |
 | :--- | :--- | :--- |
-| [Node.js](https://nodejs.org) | 22 LTS o superior | APIs y apps de escritorio |
+| [Node.js](https://nodejs.org) | **22.12 o superior** (se recomienda 24 LTS) | APIs y apps de escritorio. Verifica con `node -v`: con Node 18 `pnpm install` falla |
 | [pnpm](https://pnpm.io/installation) | 9 o superior | Instalar dependencias del monorepo (`npm install -g pnpm`) |
 | [Docker](https://docs.docker.com/get-docker/) con Compose v2 | 24+ | Bases de datos MySQL (y stack completo) |
 | Git | 2.40+ | Clonar el repositorio |
@@ -321,6 +321,7 @@ El archivo `.env` contiene secretos: **nunca lo subas al repositorio** (ya está
 | :--- | :--- |
 | `docker compose ... --wait` se queda esperando | Revisa `docker compose logs asistencia-db` y que las contraseñas de `.env` estén completas. |
 | La API cierra al arrancar | Consulta `.run/logs/*.log`; casi siempre es `DATABASE_URL` incorrecta o la base aún iniciando. |
+| `pnpm install` falla con `TypeError: ... styleText is not a function` o `Unsupported engine` | Tu versión de Node es antigua (p. ej. 18). Instala Node 22.12+ o 24 LTS, abre una terminal nueva, comprueba `node -v` y repite `pnpm install` |
 | `Cannot find module ... prisma/generated` | Ejecuta `pnpm install` (el `postinstall` corre `prisma generate`). |
 | Error de compilación de `sqlcipher` en Windows | Instala Visual Studio Build Tools (C++) y Python 3, y vuelve a ejecutar el script de instaladores. |
 | Puerto ocupado | Cambia el puerto en `.env` o detén el proceso que lo usa. |

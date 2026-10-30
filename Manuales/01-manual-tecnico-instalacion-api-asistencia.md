@@ -18,12 +18,21 @@ Instala la API de Asistencia (NestJS + Prisma + MySQL) en el puerto **43000** y 
 | Software | Versión | Descarga |
 | :--- | :--- | :--- |
 | MySQL Installer (MySQL Server) | 8.0.46 | <https://dev.mysql.com/get/Downloads/MySQLInstaller/mysql-installer-community-8.0.46.0.msi> |
-| Node.js LTS | 24.18.0 (22 LTS o superior) | <https://nodejs.org/dist/v24.18.0/node-v24.18.0-x64.msi> |
+| Node.js LTS | 24.18.0 (mínimo 22.12) | <https://nodejs.org/dist/v24.18.0/node-v24.18.0-x64.msi> |
 | pnpm | 9 o superior | `npm install -g pnpm` (después de instalar Node.js) |
 | NSSM (*Non-Sucking Service Manager*) | última | <https://nssm.cc/download> (solo para el método 1 de la sección g) |
 | Git para Windows | 2.55 | <https://github.com/git-for-windows/git/releases/download/v2.55.0.windows.2/Git-2.55.0.2-64-bit.exe> |
 
 Durante la instalación de Node.js deja marcada la opción **Add to PATH** (necesaria para que el servicio encuentre `node`).
+
+**Comprueba las versiones** en una terminal nueva (cerrada y abierta después de instalar):
+
+```powershell
+node -v     # debe mostrar v22.12 o superior (se recomienda v24.x)
+pnpm -v     # 9 o superior
+```
+
+> Con una versión antigua de Node (por ejemplo v18) `pnpm install` falla en el paso `prisma generate` con `TypeError: ... styleText is not a function`. Instala Node 24 LTS y repite el paso b.
 
 ---
 
@@ -285,6 +294,7 @@ Restaurar (PowerShell): `Get-Content respaldo-asistencia-AAAAMMDD.sql | mysql -u
 | La API se cierra al arrancar | Revisa `.run\logs\*.err.log`. Suele faltar `JWT_SECRET` o `DATABASE_URL` en el `.env` de `apps\asistencia\api`. |
 | `EADDRINUSE` | El puerto 43000 está ocupado: `Get-NetTCPConnection -LocalPort 43000` y `Stop-Process -Id <PID>`. |
 | El servicio se detiene al instante | Falta el `.env`, no se compiló (`dist\main.js`) o `node` no está en el `PATH` del sistema. |
+| `styleText is not a function` o `Unsupported engine` al ejecutar `pnpm install` | Node es demasiado antiguo (v18/v20 viejo). Instala Node 24 LTS, abre una terminal nueva, verifica `node -v` y repite `pnpm install` |
 | `Cannot find module ... generated/prisma` | Ejecuta `pnpm install` en la raíz (genera el cliente de Prisma). |
 | Las apps no se conectan desde otros equipos | Falta la regla de firewall (sección f) o el origen no está en `ASISTENCIA_ALLOWED_ORIGINS`. |
 | `The column nombre does not exist` | La base se creó con scripts SQL antiguos. Usa una base vacía y `npx prisma db push`. |
