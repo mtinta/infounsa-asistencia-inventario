@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('tsconfig.tsbuildinfo',{force:true})\"",
     "db:seed": "tsx prisma/seed.ts",
     "start": "node dist/main.js",
     "dev": "tsc && node --watch dist/main.js",

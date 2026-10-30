@@ -38,7 +38,7 @@ pnpm -v     # 9 o superior
 
 ## 2. Instalación
 
-> **Antes de empezar:** todos los comandos se ejecutan en **Windows PowerShell como administrador** (el indicador empieza con `PS`, por ejemplo `PS C:\Plataforma>`). Si ves `C:\Plataforma>` sin `PS`, estás en CMD: escribe `powershell` y pulsa Enter. Además, las rutas de los ejemplos usan `C:\Plataforma\infounsa-asistencia-inventario`; **cámbialas por la carpeta donde clonaste** el repositorio. Si esa carpeta está en otra unidad (por ejemplo `D:`), usa `cd /d D:\ruta` en CMD o `Set-Location D:\ruta` en PowerShell.
+> **Antes de empezar:** los pasos a a f funcionan tanto en **CMD** como en **Windows PowerShell**. Los pasos g (firewall) y h (servicio) usan comandos de **PowerShell como administrador** (el indicador empieza con `PS`, por ejemplo `PS C:\>`); si ves `C:\>` sin `PS`, estás en CMD: escribe `powershell` y pulsa Enter. Las rutas de los ejemplos usan `C:\Plataforma\infounsa-asistencia-inventario`; **cámbialas por la carpeta donde clonaste** el repositorio. Si esa carpeta está en otra unidad (por ejemplo `D:`), usa `cd /d D:\ruta` en CMD o `Set-Location D:\ruta` en PowerShell.
 
 ### a. Clonar el repositorio
 
@@ -79,7 +79,7 @@ cd infounsa-asistencia-inventario
 
 El `.env` guarda la configuración de la API (puerto, conexión a MySQL, secreto de sesión). Debe quedar en la carpeta de la API, con el nombre exacto `.env`. Se crea **antes de instalar las dependencias** (paso d), porque la instalación genera el cliente de Prisma y necesita `DATABASE_URL`.
 
-**1. Copia la plantilla** que trae el repositorio (en PowerShell, desde la carpeta donde clonaste):
+**1. Copia la plantilla** que trae el repositorio (en CMD o PowerShell, desde la carpeta donde clonaste):
 
 ```powershell
 cd <carpeta-del-repositorio>\apps\asistencia\api
@@ -105,9 +105,7 @@ Guarda con `Ctrl + S` y cierra el Bloc de notas. No agregues comillas, ni espaci
 **3. Genera el secreto aleatorio** (necesario: no dejes el valor de ejemplo; copia el resultado y pégalo como valor de `JWT_SECRET`):
 
 ```powershell
-$b = New-Object byte[] 32
-(New-Object Security.Cryptography.RNGCryptoServiceProvider).GetBytes($b)
-($b | ForEach-Object { $_.ToString('x2') }) -join ''
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 **4. Comprueba que el archivo existe con el nombre correcto:**
@@ -199,9 +197,10 @@ En `C:\Plataforma\infounsa-asistencia-inventario\apps\asistencia\api`:
 1. Elimina compilaciones anteriores (si las hay):
 
    ```powershell
-   Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
-   Remove-Item tsconfig.tsbuildinfo -Force -ErrorAction SilentlyContinue
+   npm run clean
    ```
+
+   (Borra la carpeta `dist` y el archivo `tsconfig.tsbuildinfo`; funciona igual en CMD y en PowerShell. Si no existen, no hace nada.)
 
 2. Compila: `npm run build` (equivale a `npx tsc`).
 3. Ejecuta el servidor:
