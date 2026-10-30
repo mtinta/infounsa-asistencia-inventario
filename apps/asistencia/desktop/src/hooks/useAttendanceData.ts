@@ -18,19 +18,8 @@ export const DEFAULT_DEVICE_CONFIG: DeviceConfig = {
   sync_interval_seconds: 30,
 };
 
-const DEFAULT_USERS: User[] = [
-  { dni: '70293841', name: 'Emerson Castro', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '46182930', name: 'Elvis Perez', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '19283746', name: 'Luis F Flores', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '48201928', name: 'Marco Quispe', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '73829102', name: 'Maria Alvarez', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '45291029', name: 'Mario Mendoza', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '18293847', name: 'Melvin Rojas', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '47291028', name: 'Miguel Tinta', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '70291834', name: 'Yoset Cozco Mauri', role: 'administrador', sede: 'Sede Universitaria' },
-  { dni: '46293817', name: 'Luis Quispe', role: 'operador', sede: 'Sede Universitaria' },
-  { dni: '19284736', name: 'Melvin Castro', role: 'operador', sede: 'Sede Universitaria' },
-];
+// Sin usuarios de ejemplo: el personal se carga desde el servidor mediante la sincronizacion.
+const DEFAULT_USERS: User[] = [];
 
 const DEFAULT_TERMINALS: Terminal[] = [
   { id: 1, name: 'Kiosco Principal - Pabellon A', ip: '192.168.1.101', status: 'ACTIVE' },

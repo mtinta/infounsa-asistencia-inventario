@@ -35,7 +35,6 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-admin123}
       SEED_RESET_PASSWORDS: "true"
-      SEED_DEMO_DATA: "true"
     ports:
       - "${ASISTENCIA_API_PORT:-43000}:${ASISTENCIA_API_PORT:-43000}"
     volumes:
@@ -97,7 +96,6 @@ services:
       JWT_SECRET_INVENTARIO: ${JWT_SECRET_INVENTARIO:?JWT_SECRET_INVENTARIO is required}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-admin123}
       SEED_RESET_PASSWORDS: "true"
-      SEED_DEMO_DATA: "true"
     ports:
       - "${INVENTARIO_API_PORT:-43001}:${INVENTARIO_API_PORT:-43001}"
     volumes:

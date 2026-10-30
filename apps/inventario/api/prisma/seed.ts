@@ -30,13 +30,13 @@ async function seedUsers(password: string) {
     {
       username: 'admin',
       email: 'admin.inventario@infounsa.local',
-      full_name: 'Administrador QA Inventario',
+      full_name: 'Administrador',
       role: 'administrador',
     },
     {
       username: 'almacenero',
       email: 'almacenero@infounsa.local',
-      full_name: 'Almacenero QA Inventario',
+      full_name: 'Almacenero',
       role: 'operador',
     },
   ];

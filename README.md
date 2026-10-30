@@ -86,7 +86,7 @@ docker compose exec asistencia-api npm run db:seed
 docker compose exec inventario-api npm run db:seed
 ```
 
-> **Credenciales iniciales:** el seed crea el usuario **`admin`** con contraseña **`admin123`** (en Inventario también `almacenero`, y en Asistencia `operador_ast`, con la misma contraseña). **Cámbialas tras el primer inicio de sesión**; para usar otra desde el principio, define `SEED_ADMIN_PASSWORD` (mínimo 8 caracteres) al ejecutar el seed. Volver a ejecutar el seed no cambia contraseñas existentes ni borra datos (opciones de prueba: `SEED_RESET_PASSWORDS=true` y `SEED_DEMO_DATA=true`, esta última borra las asistencias y solo debe usarse en entornos de prueba).
+> **Credenciales iniciales:** el seed crea el usuario **`admin`** con contraseña **`admin123`** (en Inventario también `almacenero`, y en Asistencia `operador_ast`, con la misma contraseña). **Cámbialas tras el primer inicio de sesión**; para usar otra desde el principio, define `SEED_ADMIN_PASSWORD` (mínimo 8 caracteres) al ejecutar el seed. Volver a ejecutar el seed no cambia contraseñas existentes, no modifica datos ya existentes y no crea ni borra marcaciones (para restablecer las contraseñas iniciales: `SEED_RESET_PASSWORDS=true`).
 
 > No uses `prisma migrate deploy`: Inventario no tiene migraciones de Prisma y las de Asistencia no son aplicables a MySQL.
 
@@ -250,7 +250,7 @@ Antes de entregar o poner en marcha un servidor de producción:
 
 - [ ] **Secretos:** `JWT_SECRET` / `JWT_SECRET_INVENTARIO` largos y aleatorios, contraseñas de MySQL propias y distintas a las de pruebas; ningún `.env` en el repositorio.
 - [ ] **Cuentas iniciales:** cambiar la contraseña `admin123` de `admin` (y de `almacenero` / `operador_ast`) tras el primer ingreso.
-- [ ] **Datos:** ejecutar el seed solo en la instalación inicial y **sin** `SEED_DEMO_DATA` (esa opción borra las asistencias).
+- [ ] **Datos:** ejecutar el seed solo en la instalación inicial (es seguro: no crea ni borra marcaciones). Si ya existe una instalación anterior, **migrar sus datos** con el [manual 07](Manuales/07-manual-migracion-version-anterior.md) en lugar de empezar de cero.
 - [ ] **Red:** abrir en el firewall solo los puertos 43000 y 43001 hacia la red de los clientes; MySQL (3306) solo local. Limitar `*_ALLOWED_ORIGINS` a los orígenes reales.
 - [ ] **Servicios:** APIs instaladas como servicio con inicio automático (NSSM o tarea programada) y comprobado tras un reinicio real.
 - [ ] **Respaldos:** respaldo diario de ambas bases programado (`scripts\respaldar-bases.ps1`, ver el [manual de mantenimiento](Manuales/05-manual-mantenimiento.md)) y una restauración de prueba realizada.
@@ -313,7 +313,7 @@ El archivo `.env` contiene secretos: **nunca lo subas al repositorio** (ya está
 
 ## 10. Documentación y solución de problemas
 
-- **Manuales** (carpeta [Manuales/](Manuales/README.md), en Markdown y PDF): manual técnico de instalación de cada API (con firewall y conversión en servicio por NSSM o script), manual de usuario de Asistencia y de Inventario, manual de mantenimiento (respaldos, logs, actualizaciones, recuperación), manual de generación de instaladores de Windows y anexo de servicios de Windows.
+- **Manuales** (carpeta [Manuales/](Manuales/README.md), en Markdown y PDF): manual técnico de instalación de cada API (con firewall y conversión en servicio por NSSM o script), manual de usuario de Asistencia y de Inventario, manual de mantenimiento (respaldos, logs, actualizaciones, recuperación), manual de generación de instaladores de Windows, manual de migración desde una versión anterior y anexo de servicios de Windows.
 - **Despliegue:** `docs/despliegue/manual-de-implementacion-e-instalacion.md`, `docs/despliegue/DESPLIEGUE_PRODUCCION.md`, `docs/despliegue/ROLLBACK.md`.
 - **Operación:** `docs/operacion/` (manual de usuario final, copias de seguridad y restauración, monitoreo).
 - **Manuales de usuario:** `docs/Manual de Usuario Asistencia.docx.pdf`, `docs/manual corporativo_ok.pdf`.

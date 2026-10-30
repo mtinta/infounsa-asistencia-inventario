@@ -188,7 +188,7 @@ Crea los datos iniciales (roles, sede, terminal y usuarios). El administrador qu
 npm run db:seed
 ```
 
-> **Datos de demostración:** por defecto el seed solo crea roles, sede, terminal y los usuarios `admin` y `operador_ast`. Es seguro volver a ejecutarlo: no cambia contraseñas existentes (para forzarlo, `SEED_RESET_PASSWORDS=true`) ni borra marcaciones. Solo con `SEED_DEMO_DATA=true` (entornos de prueba) genera usuarios y marcaciones de ejemplo y **borra todas las asistencias**; no lo uses en producción.
+> **Seguridad del seed:** solo crea lo que falta (roles, sede, terminal y los usuarios `admin` y `operador_ast`). Es seguro volver a ejecutarlo: no cambia contraseñas existentes (para forzarlo, `SEED_RESET_PASSWORDS=true`), no modifica datos existentes y **no crea ni borra marcaciones**.
 
 ### f. Compilación y ejecución del servidor
 

@@ -68,20 +68,6 @@ const remoteClient = createRemoteClient({
   getAuthState: () => authState,
   saveAuthState,
 });
-const DEFAULT_LOCAL_USERS = [
-  { dni: '70293841', nombres: 'Emerson', apellido_paterno: 'Castro', apellido_materno: '', name: 'Castro, Emerson', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '46182930', nombres: 'Elvis', apellido_paterno: 'Perez', apellido_materno: '', name: 'Perez, Elvis', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '19283746', nombres: 'Luis F', apellido_paterno: 'Flores', apellido_materno: '', name: 'Flores, Luis F', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '48201928', nombres: 'Marco', apellido_paterno: 'Quispe', apellido_materno: '', name: 'Quispe, Marco', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '73829102', nombres: 'Maria', apellido_paterno: 'Alvarez', apellido_materno: '', name: 'Alvarez, Maria', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '45291029', nombres: 'Mario', apellido_paterno: 'Mendoza', apellido_materno: '', name: 'Mendoza, Mario', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '18293847', nombres: 'Melvin', apellido_paterno: 'Rojas', apellido_materno: '', name: 'Rojas, Melvin', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '47291028', nombres: 'Miguel', apellido_paterno: 'Tinta', apellido_materno: '', name: 'Tinta, Miguel', role: 'usuario', sede: 'Sede Universitaria' },
-  { dni: '70291834', nombres: 'Yoset', apellido_paterno: 'Cozco', apellido_materno: 'Mauri', name: 'Cozco Mauri, Yoset', role: 'administrador', sede: 'Sede Universitaria' },
-  { dni: '46293817', nombres: 'Luis', apellido_paterno: 'Quispe', apellido_materno: '', name: 'Quispe, Luis', role: 'operador', sede: 'Sede Universitaria' },
-  { dni: '19284736', nombres: 'Melvin', apellido_paterno: 'Castro', apellido_materno: '', name: 'Castro, Melvin', role: 'operador', sede: 'Sede Universitaria' },
-];
-
 function loadWindowState() {
   try {
     if (fs.existsSync(WIN_STATE_FILE)) {
@@ -216,9 +202,15 @@ async function initDB() {
     console.error('Error migrating attendance columns:', e.message);
   }
 
+  // Versiones anteriores generaban marcaciones simuladas ("simulated-in-*" / "simulated-out-*") en el primer
+  // arranque. Se eliminan de las bases locales existentes; las marcaciones reales nunca usan esos identificadores.
+  try {
+    await dbRun("DELETE FROM attendance WHERE local_id LIKE 'simulated-in-%' OR local_id LIKE 'simulated-out-%'");
+  } catch (e) {
+    console.error('Error limpiando marcaciones simuladas:', e.message);
+  }
+
   await ensureDeviceConfig();
-  await ensureLocalUsers();
-  await seedLocalAttendance();
 }
 
 async function tableExists(tableName) {
@@ -351,71 +343,6 @@ function isLegacyLocalApiUrl(value, legacyPort) {
     return (url.hostname === 'localhost' || url.hostname === '127.0.0.1') && url.port === legacyPort;
   } catch {
     return false;
-  }
-}
-
-async function ensureLocalUsers() {
-  const existing = await dbGet('SELECT COUNT(*) AS total FROM local_users');
-  if (Number(existing?.total || 0) > 0) {
-    return;
-  }
-
-  for (const user of DEFAULT_LOCAL_USERS) {
-    await dbRun(
-      `INSERT INTO local_users (dni, nombres, apellido_paterno, apellido_materno, name, role, sede, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [user.dni, user.nombres || '', user.apellido_paterno || '', user.apellido_materno || '', user.name, user.role, user.sede, new Date().toISOString()],
-    );
-  }
-}
-
-async function seedLocalAttendance() {
-  const existing = await dbGet('SELECT COUNT(*) AS total FROM attendance');
-  if (Number(existing?.total || 0) > 0) {
-    return;
-  }
-
-  console.log('Seeding local SQLite database with 15 days of records...');
-  const today = new Date();
-  const sedeId = '84c8a8ca-8ea4-41e9-add6-2b077bcd701a';
-
-  for (let i = 0; i < 15; i++) {
-    const currentDate = new Date(today);
-    currentDate.setDate(today.getDate() - i);
-    if (currentDate.getDay() === 0) continue; // Skip Sunday
-
-    const dateStr = currentDate.toISOString().split('T')[0];
-
-    for (const u of DEFAULT_LOCAL_USERS) {
-      if (Math.random() > 0.9) continue; // 90% attendance chance
-
-      const entryHour = String(Math.floor(Math.random() * 2) + 7).padStart(2, '0'); // 7 or 8 AM
-      const entryMinute = String(Math.floor(Math.random() * 60)).padStart(2, '0');
-      const exitHour = String(Math.floor(Math.random() * 2) + 16).padStart(2, '0'); // 4 or 5 PM
-      const exitMinute = String(Math.floor(Math.random() * 60)).padStart(2, '0');
-
-      const entryTime = `${dateStr}T${entryHour}:${entryMinute}:00.000Z`;
-      const exitTime = `${dateStr}T${exitHour}:${exitMinute}:00.000Z`;
-
-      const now = new Date();
-      if (new Date(entryTime) <= now) {
-        const entryId = `simulated-in-${u.dni}-${dateStr}`;
-        await dbRun(
-          `INSERT INTO attendance (local_id, usuario_id, dni, nombre, tipo_marca, fecha_hora, id_terminal, observacion, sync_status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Sincronizado')`,
-          [entryId, `usr-${u.dni}`, u.dni, u.name, 'entrada', entryTime, 'TERM-001', 'Ingreso regular']
-        );
-      }
-
-      if (new Date(exitTime) <= now) {
-        const exitId = `simulated-out-${u.dni}-${dateStr}`;
-        await dbRun(
-          `INSERT INTO attendance (local_id, usuario_id, dni, nombre, tipo_marca, fecha_hora, id_terminal, observacion, sync_status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Sincronizado')`,
-          [exitId, `usr-${u.dni}`, u.dni, u.name, 'salida', exitTime, 'TERM-001', 'Salida regular']
-        );
-      }
-    }
   }
 }
 
@@ -691,7 +618,6 @@ async function resetLocalState() {
     DELETE FROM attendance;
     DELETE FROM local_users;
   `);
-  await ensureLocalUsers();
   await recordSyncLog('info', 0, 'Reinicio manual de estado local ejecutado.');
   return getDesktopState();
 }

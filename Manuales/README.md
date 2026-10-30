@@ -8,6 +8,7 @@
 | 04 | [Manual de usuario — Sistema de Inventario](04-manual-usuario-inventario.md) | Almacenero y administradores |
 | 05 | [Manual de mantenimiento](05-manual-mantenimiento.md) | Administrador de sistemas |
 | 06 | [Generación de instaladores de Windows](06-manual-generacion-instaladores.md) | Administrador de sistemas / desarrollador |
+| 07 | [Migración desde una versión anterior](07-manual-migracion-version-anterior.md) | Administrador de sistemas |
 | Anexo | [Servicios de Windows: NSSM y script](Anexo-servicios-windows.md) | Administrador de sistemas |
 
 Los manuales técnicos incluyen la regla de firewall y la conversión de la API en servicio de Windows con **dos métodos**: NSSM y script de Windows (tarea programada). Las capturas están en `img/` y las versiones PDF en `pdf/` (se regeneran con `pip install markdown-it-py` y `python scripts/generar-manuales-pdf.py`).

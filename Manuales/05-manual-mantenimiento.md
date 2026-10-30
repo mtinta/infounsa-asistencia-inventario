@@ -221,7 +221,7 @@ La instalación crea el usuario **`admin`** con contraseña **`admin123`** (y `a
   npm run db:seed
   ```
 
-  Los valores definidos en la sesión de PowerShell tienen prioridad sobre los del `.env`. Después, cierra la ventana (para que las variables desaparezcan) y cambia la contraseña desde la aplicación. **Nunca** definas `SEED_DEMO_DATA=true` en producción: esa opción borra las asistencias.
+  Los valores definidos en la sesión de PowerShell tienen prioridad sobre los del `.env`. Después, cierra la ventana (para que las variables desaparezcan) y cambia la contraseña desde la aplicación.
 
 ### 7.3. Rotación de secretos (trimestral)
 
@@ -465,6 +465,7 @@ Pantallas (`src/components/`):
 | `generar-instaladores-windows.ps1` / `.sh` · `build-desktop-installers.ps1` | Generar los instaladores `.exe` de los kioscos en `instaladores\` (manual 06) |
 | `generar-manuales-pdf.py` · `manuales-a-pdf.js` | Generar los PDF de la carpeta `Manuales/pdf/` |
 | `validate-all.ps1` · `run-inventario-cpi.ps1` | Validaciones y pruebas de integración locales |
+| `migracion\migrar-asistencia.js` · `inventario-actualizar-esquema.sql` · `diagnostico-version-anterior.sql` | Migrar los datos de una instalación anterior (manual 07) |
 | `publish-to-gitlab.ps1` | Publicación de instaladores en GitLab (uso interno del equipo) |
 | `backup/` · `maintenance/` · `seed/` · `setup/` | Carpetas reservadas (vacías) |
 
@@ -500,6 +501,7 @@ Pantallas (`src/components/`):
 | `Manuales/03` y `04` | Manuales de usuario de Asistencia e Inventario |
 | `Manuales/05` | Este manual de mantenimiento |
 | `Manuales/06` | Generación de los instaladores de Windows |
+| `Manuales/07` | Migración de datos desde una versión anterior |
 | `Manuales/Anexo-servicios-windows.md` | Detalle de servicios de Windows (NSSM y tarea programada) |
 | `Manuales/pdf/` · `Manuales/img/` | Versiones PDF y capturas de pantalla |
 | `docs/despliegue/` | Guías de despliegue en producción, migración a MySQL, Windows Server y vuelta atrás |
