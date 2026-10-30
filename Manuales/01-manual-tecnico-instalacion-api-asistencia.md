@@ -72,14 +72,6 @@ pnpm install
 
    `infounsa@localhost` es el usuario que recibe los permisos sobre `infounsa_asistencia`. **Anota la contraseña**: se usa en el `.env`.
 
-4. Crea las tablas con Prisma (desde `apps\asistencia\api`, después de crear el `.env` del paso d):
-
-   ```powershell
-   npx prisma db push
-   ```
-
-   > **No ejecutes los scripts de `apps/asistencia/database/init`** ni `prisma db pull`: están desactualizados respecto al esquema actual (el seed falla con `The column nombre does not exist`) y `db pull` sobrescribiría `prisma/schema.prisma`. Tampoco uses `prisma migrate deploy`: la migración inicial no es compatible con MySQL.
-
 ### d. Creación del archivo `.env`
 
 La API lee el archivo `.env` de su propia carpeta. En PowerShell:
@@ -104,6 +96,14 @@ Verifica que se lee correctamente (debe mostrar usuario, contraseña, puerto y b
 ```powershell
 node -e "require('dotenv').config(); console.log(process.env.DATABASE_URL)"
 ```
+
+Crea las tablas con Prisma (desde `apps\asistencia\api`, ya con el `.env` creado):
+
+```powershell
+npx prisma db push
+```
+
+> **No ejecutes los scripts de `apps/asistencia/database/init`** ni `prisma db pull`: están desactualizados respecto al esquema actual (el seed falla con `The column nombre does not exist`) y `db pull` sobrescribiría `prisma/schema.prisma`. Tampoco uses `prisma migrate deploy`: la migración inicial no es compatible con MySQL.
 
 Crea los datos iniciales (roles, sede, terminal y usuarios). El administrador queda con usuario **`admin`** y contraseña **`admin123`** (también se crea `operador_ast` con la misma contraseña); **cámbiala tras el primer inicio de sesión**. Para usar otra contraseña desde el inicio, agrega `SEED_ADMIN_PASSWORD=<contraseña de 8 o más caracteres>` al `.env` antes de ejecutar el seed:
 
