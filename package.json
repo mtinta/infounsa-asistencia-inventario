@@ -1,0 +1,23 @@
+{
+  "name": "plataforma-infounsa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo de Plataforma InfoUNSA (Asistencia, Inventario, Portales y Paquetes Compartidos)",
+  "workspaces": [
+    "apps/*",
+    "apps/*/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:packages": "pnpm -r --filter \"./packages/**\" run build",
+    "build:apps": "pnpm -r --filter \"./apps/**\" run build",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test --if-present"
+  },
+  "devDependencies": {
+    "newman": "^6.2.2",
+    "newman-reporter-htmlextra": "^1.23.1",
+    "pdf-parse": "^2.4.5",
+    "typescript": "5.7.3"
+  }
+}

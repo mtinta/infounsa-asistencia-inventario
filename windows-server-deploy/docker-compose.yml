@@ -1,0 +1,72 @@
+services:
+  asistencia-api:
+    build:
+      context: ..
+      dockerfile: windows-server-deploy/Dockerfile.asistencia
+    image: infounsa-asistencia-windows:latest
+    container_name: infounsa-asistencia-container
+    ports:
+      - "43000:43000"
+    environment:
+      PORT: "43000"
+      NODE_ENV: production
+      DATABASE_URL: ${ASISTENCIA_DATABASE_URL:?ASISTENCIA_DATABASE_URL is required}
+      MYSQL_SSL: ${ASISTENCIA_MYSQL_SSL:?ASISTENCIA_MYSQL_SSL is required}
+      MYSQL_SSL_REJECT_UNAUTHORIZED: ${ASISTENCIA_MYSQL_SSL_REJECT_UNAUTHORIZED:?ASISTENCIA_MYSQL_SSL_REJECT_UNAUTHORIZED is required}
+      MYSQL_SSL_CA_FILE: 'C:\run\secrets\mysql\mysql-ca.pem'
+      DB_CONNECTION_LIMIT: ${ASISTENCIA_DB_CONNECTION_LIMIT:-10}
+      DB_CONNECT_TIMEOUT_MS: ${ASISTENCIA_DB_CONNECT_TIMEOUT_MS:-5000}
+      DB_ACQUIRE_TIMEOUT_MS: ${ASISTENCIA_DB_ACQUIRE_TIMEOUT_MS:-5000}
+      DB_IDLE_TIMEOUT_MS: ${ASISTENCIA_DB_IDLE_TIMEOUT_MS:-60000}
+      ASISTENCIA_ALLOWED_ORIGINS: http://localhost:43000,http://127.0.0.1:43000,http://localhost:3000,http://127.0.0.1:3000
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+    volumes:
+      - type: bind
+        source: ${INFOUNSA_MYSQL_CA_DIR:?INFOUNSA_MYSQL_CA_DIR is required}
+        target: 'C:\run\secrets\mysql'
+        read_only: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:43000/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  inventario-api:
+    build:
+      context: ..
+      dockerfile: windows-server-deploy/Dockerfile.inventario
+    image: infounsa-inventario-windows:latest
+    container_name: infounsa-inventario-container
+    ports:
+      - "43001:43001"
+    environment:
+      PORT: "43001"
+      NODE_ENV: production
+      DATABASE_URL: ${INVENTARIO_DATABASE_URL:?INVENTARIO_DATABASE_URL is required}
+      MYSQL_SSL: ${INVENTARIO_MYSQL_SSL:?INVENTARIO_MYSQL_SSL is required}
+      MYSQL_SSL_REJECT_UNAUTHORIZED: ${INVENTARIO_MYSQL_SSL_REJECT_UNAUTHORIZED:?INVENTARIO_MYSQL_SSL_REJECT_UNAUTHORIZED is required}
+      MYSQL_SSL_CA_FILE: 'C:\run\secrets\mysql\mysql-ca.pem'
+      DB_CONNECTION_LIMIT: ${INVENTARIO_DB_CONNECTION_LIMIT:-10}
+      DB_CONNECT_TIMEOUT_MS: ${INVENTARIO_DB_CONNECT_TIMEOUT_MS:-5000}
+      DB_ACQUIRE_TIMEOUT_MS: ${INVENTARIO_DB_ACQUIRE_TIMEOUT_MS:-5000}
+      DB_IDLE_TIMEOUT_MS: ${INVENTARIO_DB_IDLE_TIMEOUT_MS:-60000}
+      INVENTARIO_ALLOWED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://127.0.0.1:43001,http://localhost:43001
+      JWT_SECRET_INVENTARIO: ${JWT_SECRET_INVENTARIO:?JWT_SECRET_INVENTARIO is required}
+    volumes:
+      - type: bind
+        source: ${INFOUNSA_MYSQL_CA_DIR:?INFOUNSA_MYSQL_CA_DIR is required}
+        target: 'C:\run\secrets\mysql'
+        read_only: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:43001/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

@@ -1,0 +1,1051 @@
+{
+  "info": {
+    "_postman_id": "7ee6fe66-7b92-4a06-bd05-980548726b41",
+    "name": "CPI Inventario - API de Catalogo",
+    "description": "Implementacion Postman/Newman de cpi-inventario-catalogo-api.md. Cubre categorias, bienes, barcode automatico, relaciones, paginacion, validaciones y seguridad JWT contra la API actual de Inventario.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminAccessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === 'Precondicion - API inventario saludable' || !pm.environment.get('catalogRunId')) {",
+          "  const runId = Date.now().toString();",
+          "  pm.environment.set('catalogRunId', runId);",
+          "  pm.environment.set('categoryName', `QA Categoria Catalogo ${runId}`);",
+          "  pm.environment.set('categoryDescription', `Categoria creada por CPI catalogo ${runId}`);",
+          "  pm.environment.set('categoryDescriptionUpdated', `Categoria actualizada por CPI catalogo ${runId}`);",
+          "  pm.environment.set('itemBarcode', `QA-CAT-${runId}`);",
+          "  pm.environment.set('secondItemBarcode', `QA-CAT-SECOND-${runId}`);",
+          "  pm.environment.set('missingBarcode', `QA-CAT-MISSING-${runId}`);",
+          "  pm.environment.set('negativeBarcode', `QA-CAT-NEG-${runId}`);",
+          "  pm.environment.set('missingNameBarcode', `QA-CAT-SIN-NOMBRE-${runId}`);",
+          "  pm.environment.set('itemName', `Bien QA Catalogo ${runId}`);",
+          "  pm.environment.set('missingItemId', '2147483647');",
+          "  pm.environment.set('invalidMissingNameItemId', '0');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Precondicion - API inventario saludable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('MySQL/MariaDB conectada', () => { pm.expect(json.status).to.eql('ok'); pm.expect(json.database).to.eql('connected'); });",
+              "pm.test('Identifica inventario-api', () => pm.expect(json.service).to.eql('inventario-api'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login administrador para catalogo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Login de administrador', () => pm.expect(json.user.role).to.eql('administrador'));",
+              "pm.environment.set('adminAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-INV-CAT-08.1 Crear categoria",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{categoryName}}\",\n  \"description\": \"{{categoryDescription}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna categoria creada', () => { pm.expect(json.id).to.exist; pm.expect(json.name).to.eql(pm.environment.get('categoryName')); });",
+              "pm.environment.set('categoryId', String(json.id));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-08.2 Listar categorias",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Listado contiene categoria QA', () => pm.expect(json.some((category) => String(category.id) === pm.environment.get('categoryId'))).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-17.1 Consultar categoria por ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna categoria correcta', () => { pm.expect(String(json.id)).to.eql(pm.environment.get('categoryId')); pm.expect(json.name).to.eql(pm.environment.get('categoryName')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-18.2 No exponer error interno al duplicar categoria",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{categoryName}}\",\n  \"description\": \"Segundo intento duplicado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|p2002|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-01 Registrar bien valido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{itemBarcode}}\",\n  \"name\": \"{{itemName}}\",\n  \"description\": \"Bien creado por CPI catalogo\",\n  \"quantity\": 10,\n  \"min_stock\": 3,\n  \"unit\": \"unidad\",\n  \"category_id\": {{categoryId}},\n  \"sede_id\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna campos persistidos', () => { pm.expect(json.id).to.exist; pm.expect(json.barcode).to.eql(pm.environment.get('itemBarcode')); pm.expect(json.name).to.eql(pm.environment.get('itemName')); pm.expect(Number(json.quantity)).to.eql(10); });",
+              "pm.environment.set('itemId', String(json.id));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-01.2 Consultar bien por ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Bien persiste con categoria', () => { pm.expect(String(json.id)).to.eql(pm.environment.get('itemId')); pm.expect(String(json.category_id)).to.eql(pm.environment.get('categoryId')); pm.expect(json.category_name).to.eql(pm.environment.get('categoryName')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-02 Rechazar barcode duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{itemBarcode}}\",\n  \"name\": \"Bien QA Duplicado\",\n  \"quantity\": 1,\n  \"category_id\": {{categoryId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "const json = pm.response.json();",
+              "pm.test('Mensaje identifica barcode duplicado', () => pm.expect(String(json.message || '').toLowerCase()).to.match(/codigo|barra|existe/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-03 Rechazar cantidad negativa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{negativeBarcode}}\",\n  \"name\": \"Bien QA Negativo\",\n  \"quantity\": -1,\n  \"category_id\": {{categoryId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de cantidad negativa', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('negativa'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-09 Registrar bien con barcode automatico",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Bien QA Barcode Automatico\",\n  \"quantity\": 2,\n  \"min_stock\": 1,\n  \"category_id\": {{categoryId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Genera barcode numerico', () => pm.expect(String(json.barcode)).to.match(/^\\d{7,}$/));",
+              "pm.environment.set('autoItemId', String(json.id));",
+              "pm.environment.set('autoBarcode', String(json.barcode));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-09.2 Consultar barcode automatico",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/barcode/{{autoBarcode}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Retorna bien automatico', () => pm.expect(String(pm.response.json().id)).to.eql(pm.environment.get('autoItemId')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-10 Generar barcode ante espacios",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"   \",\n  \"name\": \"Bien QA Barcode Espacios\",\n  \"quantity\": 3,\n  \"category_id\": {{categoryId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Genera barcode unico no vacio', () => { pm.expect(String(json.barcode)).to.match(/^\\d{7,}$/); pm.expect(String(json.barcode)).to.not.eql(pm.environment.get('autoBarcode')); });",
+              "pm.environment.set('spaceItemId', String(json.id));",
+              "pm.environment.set('spaceBarcode', String(json.barcode));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-04 Consultar catalogo paginado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items?page=1&limit=2"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Metadatos y limite correctos', () => { pm.expect(json.data).to.be.an('array'); pm.expect(json.data.length).to.be.at.most(2); pm.expect(json.page).to.eql(1); pm.expect(json.limit).to.eql(2); pm.expect(json.total).to.be.a('number'); pm.expect(json.totalPages).to.be.a('number'); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-11 Consultar category_name en listado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items?page=1&limit=200"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "const item = json.data.find((entry) => String(entry.id) === pm.environment.get('itemId'));",
+              "pm.test('Listado integra categoria', () => { pm.expect(item).to.exist; pm.expect(item.category_name).to.eql(pm.environment.get('categoryName')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-16.2 No exponer error interno con valores negativos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items?page=0&limit=-1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-16.4 No exponer error interno con paginacion no numerica",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items?page=abc&limit=xyz"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-05.1 Consultar por barcode existente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/barcode/{{itemBarcode}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna bien correcto', () => { pm.expect(json.barcode).to.eql(pm.environment.get('itemBarcode')); pm.expect(String(json.id)).to.eql(pm.environment.get('itemId')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-05.2 Consultar barcode inexistente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/barcode/{{missingBarcode}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica barcode', () => pm.expect(String(pm.response.json().message || '')).to.include(pm.environment.get('missingBarcode')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-12 Consultar bien inexistente por ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{missingItemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica bien', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('bien'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-13 Rechazar cantidad negativa al actualizar",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": -1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de cantidad negativa', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('negativa'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Setup - Crear segundo bien para conflicto de barcode",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{secondItemBarcode}}\",\n  \"name\": \"Segundo Bien QA Catalogo\",\n  \"quantity\": 1,\n  \"category_id\": {{categoryId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.environment.set('secondItemId', String(pm.response.json().id));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-14 Rechazar barcode duplicado al actualizar",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{secondItemBarcode}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('Mensaje identifica conflicto', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.match(/codigo|barra|existe/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-15 Conservar barcode ante espacios",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"   \"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Conserva barcode original', () => pm.expect(pm.response.json().barcode).to.eql(pm.environment.get('itemBarcode')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-19.2 No exponer error interno al eliminar categoria asociada",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|foreign key|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-19.3 Categoria permanece registrada",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Categoria conserva ID', () => pm.expect(String(pm.response.json().id)).to.eql(pm.environment.get('categoryId')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-20.2 No exponer error interno al omitir nombre de bien",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{missingNameBarcode}}\",\n  \"quantity\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) pm.environment.set('invalidMissingNameItemId', String(pm.response.json().id));",
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-20.5 No exponer error interno al omitir nombre de categoria",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Segunda categoria sin nombre\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-07.1 Rechazar eliminacion sin token",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Cleanup - Eliminar bien principal si permanece",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar segundo bien",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{secondItemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar bien con barcode automatico",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{autoItemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar bien con barcode por espacios",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{spaceItemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar eventual bien sin nombre",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{invalidMissingNameItemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-08.3 Actualizar categoria",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories/{{categoryId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"{{categoryDescriptionUpdated}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Descripcion actualizada', () => pm.expect(pm.response.json().description).to.eql(pm.environment.get('categoryDescriptionUpdated')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-08.4 Eliminar categoria",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Confirma eliminacion', () => pm.expect(pm.response.json().deleted).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-CAT-17.2 Consultar categoria eliminada",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

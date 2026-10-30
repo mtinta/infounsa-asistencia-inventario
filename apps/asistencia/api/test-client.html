@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfoUNSA - API Test Client</title>
+    <!-- Modern Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --error: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 992px) {
+            .full-width {
+                grid-column: span 1;
+            }
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #818cf8;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        input, textarea, select {
+            background-color: #0f172a;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            font-family: inherit;
+            font-size: 0.95rem;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .button-secondary {
+            background-color: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .button-secondary:hover {
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+
+        .response-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            height: 100%;
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-badge.idle { background-color: var(--border); color: var(--text-muted); }
+        .status-badge.success { background-color: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .status-badge.error { background-color: rgba(239, 68, 68, 0.2); color: var(--error); }
+
+        pre {
+            background-color: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            max-height: 500px;
+            min-height: 250px;
+            white-space: pre-wrap;
+        }
+
+        .info-box {
+            background-color: rgba(99, 102, 241, 0.05);
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            flex-grow: 1;
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="card full-width">
+            <div>
+                <h1>InfoUNSA - API Test Client</h1>
+                <p style="color: var(--text-muted);">Prueba la API NestJS integrada en el monorepo (Ejecutándose en el Puerto 3002).</p>
+            </div>
+            <div class="input-group">
+                <label for="base-url">URL Base de la API</label>
+                <input type="text" id="base-url" value="http://localhost:3002">
+            </div>
+        </div>
+
+        <!-- CLIENT FORM -->
+        <div class="card">
+            <h2>Pruebas de Endpoints</h2>
+            
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('sync-tab')">Sincronizar (Lote)</button>
+                <button class="tab-btn" onclick="switchTab('register-tab')">Registrar (Individual)</button>
+                <button class="tab-btn" onclick="switchTab('report-tab')">Reportes</button>
+            </div>
+
+            <!-- TAB 1: SYNC -->
+            <div id="sync-tab" class="tab-content">
+                <div class="input-group">
+                    <label for="post-payload">Sincronizar Asistencias (POST /attendance/sync)</label>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Envía un lote de marcas con validación DTO e idempotencia Prisma.</p>
+                    <textarea id="post-payload" rows="12"></textarea>
+                    <button class="button-secondary" style="margin-top: 0.5rem; width: 100%;" onclick="testSync()">Ejecutar POST /attendance/sync</button>
+                </div>
+            </div>
+
+            <!-- TAB 2: REGISTER -->
+            <div id="register-tab" class="tab-content" style="display: none;">
+                <div class="input-group">
+                    <label>Registrar Asistencia Individual (POST /attendance/register)</label>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Registra un solo evento validando relaciones físicas en la base de datos.</p>
+                    
+                    <div class="input-row" style="margin-bottom: 0.5rem;">
+                        <div class="input-group">
+                            <label for="reg-usuario-id">ID Usuario</label>
+                            <input type="text" id="reg-usuario-id" value="USR-101">
+                        </div>
+                        <div class="input-group">
+                            <label for="reg-terminal-id">ID Terminal</label>
+                            <input type="text" id="reg-terminal-id" value="TERM-001">
+                        </div>
+                    </div>
+                    
+                    <div class="input-row" style="margin-bottom: 0.5rem;">
+                        <div class="input-group">
+                            <label for="reg-sede-id">Sede ID (UUID)</label>
+                            <input type="text" id="reg-sede-id" value="84c8a8ca-8ea4-41e9-add6-2b077bcd701a">
+                        </div>
+                        <div class="input-group">
+                            <label for="reg-id-operacion">ID Operación Local (UUID)</label>
+                            <input type="text" id="reg-id-operacion" value="">
+                        </div>
+                    </div>
+
+                    <div class="input-group" style="margin-bottom: 0.5rem;">
+                        <label for="reg-observacion">Observación</label>
+                        <input type="text" id="reg-observacion" value="Registro manual desde cliente de pruebas">
+                    </div>
+
+                    <button class="button-secondary" style="width: 100%;" onclick="testRegister()">Ejecutar POST /attendance/register</button>
+                </div>
+            </div>
+
+            <!-- TAB 3: REPORT -->
+            <div id="report-tab" class="tab-content" style="display: none;">
+                <div class="input-group">
+                    <label>Reporte de Asistencias (GET /attendance/report)</label>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Obtén el listado de usuarios y sus marcas filtradas por fecha vía Prisma.</p>
+                    
+                    <div class="input-row" style="margin-bottom: 0.5rem;">
+                        <div class="input-group">
+                            <label for="rep-start-date">Fecha Inicio</label>
+                            <input type="date" id="rep-start-date" value="2026-06-01">
+                        </div>
+                        <div class="input-group">
+                            <label for="rep-end-date">Fecha Fin</label>
+                            <input type="date" id="rep-end-date" value="2026-06-30">
+                        </div>
+                    </div>
+
+                    <button class="button-secondary" style="width: 100%;" onclick="testReport()">Ejecutar GET /attendance/report</button>
+                </div>
+            </div>
+
+            <!-- HEALTH CHECK -->
+            <div style="padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <label>Verificar Estado del API</label>
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">GET /health (Verifica BD)</p>
+                </div>
+                <button class="button-secondary" style="padding: 0.5rem 1rem;" onclick="testHealth()">Ejecutar</button>
+            </div>
+        </div>
+
+        <!-- RESPONSE VIEW -->
+        <div class="card" style="justify-content: space-between;">
+            <div class="response-header">
+                <h2>Respuesta del Servidor</h2>
+                <span id="status" class="status-badge idle">Inactivo</span>
+            </div>
+
+            <div class="response-container">
+                <pre id="output">// Los resultados aparecerán aquí...</pre>
+            </div>
+
+            <div class="info-box">
+                <strong>Evidencia del Endpoint:</strong> Las respuestas del servidor reflejarán directamente las restricciones del esquema físico en PostgreSQL y la lógica de validaciones de NestJS.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generar UUID aleatorio
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Cargar UUID aleatorio al input al iniciar
+        document.getElementById('reg-id-operacion').value = generateUUID();
+
+        // Cargar payload por defecto para sync
+        const defaultPayload = {
+            "terminal_id": "TERM-001",
+            "sede_id": "84c8a8ca-8ea4-41e9-add6-2b077bcd701a",
+            "registros": [
+                {
+                    "id_operacion_local": generateUUID(),
+                    "usuario_id": "USR-101",
+                    "fecha_hora_marca": new Date().toISOString(),
+                    "es_menor_manual": false
+                },
+                {
+                    "id_operacion_local": generateUUID(),
+                    "usuario_id": null,
+                    "fecha_hora_marca": new Date().toISOString(),
+                    "es_menor_manual": true,
+                    "datos_menor": {
+                        "nombre_completo": "CARLOS ALBERTO ROJAS",
+                        "dni_contingencia": "00000000"
+                    }
+                }
+            ]
+        };
+
+        document.getElementById('post-payload').value = JSON.stringify(defaultPayload, null, 2);
+
+        function switchTab(tabId) {
+            // Ocultar todos
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            // Mostrar seleccionado
+            document.getElementById(tabId).style.display = 'block';
+            event.target.classList.add('active');
+        }
+
+        function setStatus(type, text) {
+            const badge = document.getElementById('status');
+            badge.className = `status-badge ${type}`;
+            badge.innerText = text;
+        }
+
+        async function testHealth() {
+            const baseUrl = document.getElementById('base-url').value.trim();
+            setStatus('idle', 'Cargando...');
+            document.getElementById('output').innerText = 'Enviando petición...';
+
+            try {
+                const response = await fetch(`${baseUrl}/health`);
+                const statusText = `STATUS: ${response.status} ${response.statusText}`;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setStatus('success', `${response.status} OK`);
+                } else {
+                    setStatus('error', `${response.status} Error`);
+                }
+                document.getElementById('output').innerText = `${statusText}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (err) {
+                setStatus('error', 'Fallo de Conexión');
+                document.getElementById('output').innerText = `Error al conectar con la API:\n${err.message}\n\n¿El backend está encendido en ${baseUrl}?`;
+            }
+        }
+
+        async function testSync() {
+            const baseUrl = document.getElementById('base-url').value.trim();
+            const payloadStr = document.getElementById('post-payload').value;
+            setStatus('idle', 'Cargando...');
+            document.getElementById('output').innerText = 'Enviando petición...';
+
+            let payload;
+            try {
+                payload = JSON.parse(payloadStr);
+            } catch (e) {
+                setStatus('error', 'JSON Inválido');
+                document.getElementById('output').innerText = `Error al parsear el JSON de entrada:\n${e.message}`;
+                return;
+            }
+
+            try {
+                const response = await fetch(`${baseUrl}/attendance/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const statusText = `STATUS: ${response.status} ${response.statusText}`;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setStatus('success', `${response.status} OK`);
+                } else {
+                    setStatus('error', `${response.status} Error`);
+                }
+                
+                document.getElementById('output').innerText = `${statusText}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (err) {
+                setStatus('error', 'Fallo de Conexión');
+                document.getElementById('output').innerText = `Error al conectar con la API:\n${err.message}\n\n¿El backend está encendido en ${baseUrl}?`;
+            }
+        }
+
+        async function testRegister() {
+            const baseUrl = document.getElementById('base-url').value.trim();
+            setStatus('idle', 'Cargando...');
+            document.getElementById('output').innerText = 'Enviando petición...';
+
+            const payload = {
+                usuario_id: document.getElementById('reg-usuario-id').value.trim(),
+                terminal_id: document.getElementById('reg-terminal-id').value.trim(),
+                sede_id: document.getElementById('reg-sede-id').value.trim(),
+                tipo: 'entrada',
+                fecha_hora_marca: new Date().toISOString(),
+                id_operacion_local: document.getElementById('reg-id-operacion').value.trim(),
+                observacion: document.getElementById('reg-observacion').value.trim()
+            };
+
+            try {
+                const response = await fetch(`${baseUrl}/attendance/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const statusText = `STATUS: ${response.status} ${response.statusText}`;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setStatus('success', `${response.status} OK`);
+                    // Generar un nuevo UUID para la siguiente prueba individual
+                    document.getElementById('reg-id-operacion').value = generateUUID();
+                } else {
+                    setStatus('error', `${response.status} Error`);
+                }
+                
+                document.getElementById('output').innerText = `${statusText}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (err) {
+                setStatus('error', 'Fallo de Conexión');
+                document.getElementById('output').innerText = `Error al conectar con la API:\n${err.message}\n\n¿El backend está encendido en ${baseUrl}?`;
+            }
+        }
+
+        async function testReport() {
+            const baseUrl = document.getElementById('base-url').value.trim();
+            const start = document.getElementById('rep-start-date').value;
+            const end = document.getElementById('rep-end-date').value;
+            
+            setStatus('idle', 'Cargando...');
+            document.getElementById('output').innerText = 'Enviando petición...';
+
+            try {
+                const response = await fetch(`${baseUrl}/attendance/report?startDate=${start}&endDate=${end}`);
+                const statusText = `STATUS: ${response.status} ${response.statusText}`;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setStatus('success', `${response.status} OK`);
+                } else {
+                    setStatus('error', `${response.status} Error`);
+                }
+                
+                document.getElementById('output').innerText = `${statusText}\n\n${JSON.stringify(data, null, 2)}`;
+            } catch (err) {
+                setStatus('error', 'Fallo de Conexión');
+                document.getElementById('output').innerText = `Error al conectar con la API:\n${err.message}\n\n¿El backend está encendido en ${baseUrl}?`;
+            }
+        }
+    </script>
+</body>
+</html>

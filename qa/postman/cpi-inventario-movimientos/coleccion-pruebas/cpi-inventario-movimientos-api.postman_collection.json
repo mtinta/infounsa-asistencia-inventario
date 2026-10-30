@@ -1,0 +1,1255 @@
+{
+  "info": {
+    "_postman_id": "efcf4855-b92f-4fb0-bbdd-e5d9c0fbfc3d",
+    "name": "CPI Inventario - API de Movimientos y Sincronizacion",
+    "description": "Implementacion Postman/Newman de cpi-inventario-movimientos-api.md. Cubre movimientos principales, stock, sincronizacion, idempotencia, validaciones, concurrencia, historial y autorizacion de reportes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{operatorAccessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === 'Precondicion - API inventario saludable' || !pm.environment.get('movementRunId')) {",
+          "  const runId = Date.now().toString();",
+          "  const guid = () => pm.variables.replaceIn('{{$guid}}');",
+          "  pm.environment.set('movementRunId', runId);",
+          "  pm.environment.set('operatorUsername', `qa_mov_${runId}`);",
+          "  pm.environment.set('operatorEmail', `qa_mov_${runId}@example.test`);",
+          "  pm.environment.set('operatorPassword', 'QaMovimientos123*');",
+          "  pm.environment.set('operatorFullName', `QA Movimientos ${runId}`);",
+          "  pm.environment.set('categoryName', `QA Categoria Movimientos ${runId}`);",
+          "  pm.environment.set('itemBarcode', `QA-MOV-${runId}`);",
+          "  pm.environment.set('itemName', `Bien QA Movimientos ${runId}`);",
+          "  ['opEntrada','opEntradaCero','opSalida','opSalidaInsuficiente','opMissingItem','opMissingUser','opMissingArea','opTypeInvalid','opDateInvalid','opNegative','opExtraField','syncOpEntrada','syncOpSalida','syncAtomicFirst','syncAtomicSecond','concurrentOpOne','concurrentOpTwo'].forEach((key) => pm.environment.set(key, guid()));",
+          "  pm.environment.set('missingEntityId', '2147483647');",
+          "}",
+          "const now = new Date();",
+          "const isoDaysFromNow = (days) => new Date(now.getTime() + days * 86400000).toISOString();",
+          "pm.environment.set('registeredAt', now.toISOString());",
+          "pm.environment.set('reportStartDate', isoDaysFromNow(-1));",
+          "pm.environment.set('reportEndDate', isoDaysFromNow(1));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Precondicion - API inventario saludable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('MySQL/MariaDB conectada', () => { pm.expect(json.status).to.eql('ok'); pm.expect(json.database).to.eql('connected'); });",
+              "pm.test('Identifica inventario-api', () => pm.expect(json.service).to.eql('inventario-api'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Registrar operador QA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{operatorFullName}}\",\n  \"email\": \"{{operatorEmail}}\",\n  \"username\": \"{{operatorUsername}}\",\n  \"password\": \"{{operatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Crea operador QA', () => pm.expect(json.user.role).to.eql('operador'));",
+              "pm.environment.set('operatorUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login operador QA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{operatorUsername}}\",\n  \"password\": \"{{operatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna token de operador', () => { pm.expect(json.user.role).to.eql('operador'); pm.expect(json.access_token).to.be.a('string').and.not.empty; });",
+              "pm.environment.set('operatorAccessToken', json.access_token);",
+              "pm.environment.set('operatorUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login administrador QA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna token de administrador', () => pm.expect(json.user.role).to.eql('administrador'));",
+              "pm.environment.set('adminAccessToken', json.access_token);",
+              "pm.environment.set('adminUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Crear categoria para movimientos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/categories",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{categoryName}}\",\n  \"description\": \"Categoria QA para movimientos\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.environment.set('categoryId', String(pm.response.json().id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Setup - Crear bien con stock conocido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"barcode\": \"{{itemBarcode}}\",\n  \"name\": \"{{itemName}}\",\n  \"quantity\": 10,\n  \"min_stock\": 4,\n  \"unit\": \"unidad\",\n  \"category_id\": {{categoryId}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Stock inicial 10 y minimo 4', () => { pm.expect(Number(json.quantity)).to.eql(10); pm.expect(Number(json.min_stock)).to.eql(4); });",
+              "pm.environment.set('itemId', String(json.id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-MOV-01.1 Registrar entrada valida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 5,\n  \"user_id\": {{operatorUserId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opEntrada}}\",\n  \"observations\": \"CPI-INV-MOV-01 entrada valida\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Persiste trazabilidad de entrada', () => { pm.expect(json.type).to.eql('entrada'); pm.expect(Number(json.quantity)).to.eql(5); pm.expect(String(json.user_id)).to.eql(pm.environment.get('operatorUserId')); pm.expect(json.id_operacion_local).to.eql(pm.environment.get('opEntrada')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-02.1 Rechazar entrada con cantidad cero",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 0,\n  \"user_id\": {{operatorUserId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opEntradaCero}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de cantidad', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('cantidad'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-03.1 Registrar salida valida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"salida\",\n  \"quantity\": 4,\n  \"user_id\": {{operatorUserId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opSalida}}\",\n  \"observations\": \"CPI-INV-MOV-03 salida valida\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Persiste salida y operador', () => { pm.expect(json.type).to.eql('salida'); pm.expect(Number(json.quantity)).to.eql(4); pm.expect(String(json.user_id)).to.eql(pm.environment.get('operatorUserId')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Setup - Preparar stock para salida superior",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 3,\n  \"min_stock\": 4\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Stock preparado en 3', () => pm.expect(Number(pm.response.json().quantity)).to.eql(3));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-MOV-04.1 Rechazar salida superior al stock",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"salida\",\n  \"quantity\": 4,\n  \"user_id\": {{operatorUserId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opSalidaInsuficiente}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-04.3 Verificar rollback de stock",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Stock permanece en 3', () => pm.expect(Number(pm.response.json().quantity)).to.eql(3));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-08.1 Sincronizar lote valido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"batch\": [\n    {\n      \"item_id\": {{itemId}},\n      \"type\": \"entrada\",\n      \"quantity\": 2,\n      \"user_id\": {{operatorUserId}},\n      \"registered_at\": \"{{registeredAt}}\",\n      \"id_operacion_local\": \"{{syncOpEntrada}}\"\n    },\n    {\n      \"item_id\": {{itemId}},\n      \"type\": \"salida\",\n      \"quantity\": 1,\n      \"user_id\": {{operatorUserId}},\n      \"registered_at\": \"{{registeredAt}}\",\n      \"id_operacion_local\": \"{{syncOpSalida}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Sincroniza dos movimientos', () => { pm.expect(json.status).to.eql('success'); pm.expect(json.synced_count).to.eql(2); pm.expect(json.processed_local_ids).to.include(pm.environment.get('syncOpEntrada')); pm.expect(json.processed_local_ids).to.include(pm.environment.get('syncOpSalida')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-08.2 Verificar stock tras sync",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Stock queda en 8', () => pm.expect(Number(json.quantity)).to.eql(8));",
+              "pm.environment.set('stockAfterSync', String(json.quantity));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-09 Reenviar lote para idempotencia",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"batch\": [\n    {\n      \"item_id\": {{itemId}},\n      \"type\": \"entrada\",\n      \"quantity\": 2,\n      \"user_id\": {{operatorUserId}},\n      \"registered_at\": \"{{registeredAt}}\",\n      \"id_operacion_local\": \"{{syncOpEntrada}}\"\n    },\n    {\n      \"item_id\": {{itemId}},\n      \"type\": \"salida\",\n      \"quantity\": 1,\n      \"user_id\": {{operatorUserId}},\n      \"registered_at\": \"{{registeredAt}}\",\n      \"id_operacion_local\": \"{{syncOpSalida}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('No vuelve a contabilizar duplicados', () => { pm.expect(json.status).to.eql('success'); pm.expect(json.synced_count).to.eql(0); pm.expect(json.processed_local_ids).to.be.an('array').that.is.empty; });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-09.2 Verificar stock idempotente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Stock no cambia', () => pm.expect(String(pm.response.json().quantity)).to.eql(pm.environment.get('stockAfterSync')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-15.1 Rechazar bien inexistente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{missingEntityId}},\n  \"type\": \"entrada\",\n  \"quantity\": 1,\n  \"user_id\": {{operatorUserId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opMissingItem}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-15.3 Rechazar usuario inexistente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 1,\n  \"user_id\": {{missingEntityId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opMissingUser}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-15.5 Rechazar area inexistente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 1,\n  \"user_id\": {{operatorUserId}},\n  \"area_id\": {{missingEntityId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opMissingArea}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-16.1 Rechazar tipo invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"ajuste\",\n  \"quantity\": 1,\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opTypeInvalid}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de tipo', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('tipo'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-16.2 Rechazar fecha invalida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 1,\n  \"registered_at\": \"fecha-invalida\",\n  \"id_operacion_local\": \"{{opDateInvalid}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de fecha', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('fecha'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-16.3 Rechazar UUID invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 1,\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"uuid-invalido\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de UUID', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('uuid'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-16.4 Rechazar cantidad negativa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": -1,\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opNegative}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de cantidad', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('cantidad'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-16.5 Rechazar campo desconocido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 1,\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opExtraField}}\",\n  \"campo_no_permitido\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Identifica campo desconocido', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('campo_no_permitido'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-17.1 Rechazar operacion local duplicada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"item_id\": {{itemId}},\n  \"type\": \"entrada\",\n  \"quantity\": 5,\n  \"user_id\": {{operatorUserId}},\n  \"registered_at\": \"{{registeredAt}}\",\n  \"id_operacion_local\": \"{{opEntrada}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-12.1 Validar contrato del historial",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-movements"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const rows = pm.response.json();",
+              "pm.test('Orden descendente', () => { for (let index = 1; index < rows.length; index += 1) pm.expect(new Date(rows[index - 1].registered_at).getTime()).to.be.at.least(new Date(rows[index].registered_at).getTime()); });",
+              "pm.test('Campos enriquecidos presentes', () => { ['item_name', 'item_barcode', 'operator_name', 'area_id', 'destinatario_name'].forEach((field) => pm.expect(rows[0]).to.have.property(field)); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Setup - Registrar stock antes de lote atomico",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.environment.set('stockBeforeAtomic', String(pm.response.json().quantity));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-21 Rollback completo de lote invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-movements/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"batch\": [\n    {\n      \"item_id\": {{itemId}},\n      \"type\": \"entrada\",\n      \"quantity\": 2,\n      \"user_id\": {{operatorUserId}},\n      \"registered_at\": \"{{registeredAt}}\",\n      \"id_operacion_local\": \"{{syncAtomicFirst}}\"\n    },\n    {\n      \"item_id\": {{itemId}},\n      \"type\": \"salida\",\n      \"quantity\": 10000,\n      \"user_id\": {{operatorUserId}},\n      \"registered_at\": \"{{registeredAt}}\",\n      \"id_operacion_local\": \"{{syncAtomicSecond}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Mensaje de fallo de lote', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.match(/sincronizacion|stock/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-MOV-21.2 Verificar rollback atomico",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Stock conserva valor previo', () => pm.expect(String(pm.response.json().quantity)).to.eql(pm.environment.get('stockBeforeAtomic')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Setup - Preparar stock unitario para concurrencia",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 1\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Stock preparado en 1', () => pm.expect(Number(pm.response.json().quantity)).to.eql(1));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-MOV-23.1 Ejecutar salidas concurrentes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const url = `${pm.environment.get('baseUrl')}/inventory-movements`;",
+              "const token = pm.environment.get('operatorAccessToken');",
+              "const makeBody = (operationId) => ({ item_id: Number(pm.environment.get('itemId')), type: 'salida', quantity: 1, user_id: Number(pm.environment.get('operatorUserId')), registered_at: new Date().toISOString(), id_operacion_local: operationId });",
+              "const responses = [];",
+              "const collect = (error, response) => {",
+              "  pm.expect(error).to.eql(null);",
+              "  responses.push(response.code);",
+              "  if (responses.length === 2) pm.test('Una salida se acepta y otra se rechaza', () => pm.expect(responses.sort()).to.eql([201, 400]));",
+              "};",
+              "pm.sendRequest({ url, method: 'POST', header: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: { mode: 'raw', raw: JSON.stringify(makeBody(pm.environment.get('concurrentOpOne'))) } }, collect);",
+              "pm.sendRequest({ url, method: 'POST', header: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: { mode: 'raw', raw: JSON.stringify(makeBody(pm.environment.get('concurrentOpTwo'))) } }, collect);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-INV-MOV-27.1 Operador no accede a reporte JSON",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-movements/report?startDate={{reportStartDate}}&endDate={{reportEndDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-MOV-27.2 Operador no accede a reporte PDF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-movements/report/pdf?startDate={{reportStartDate}}&endDate={{reportEndDate}}&type=resumido"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-MOV-27.3 Operador no accede a reporte Excel",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-movements/report/excel?startDate={{reportStartDate}}&endDate={{reportEndDate}}&type=resumido"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Eliminar bien y movimientos QA",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items/{{itemId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Confirma eliminacion', () => pm.expect(pm.response.json().deleted).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Eliminar categoria QA",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/categories/{{categoryId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}

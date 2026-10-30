@@ -1,0 +1,136 @@
+# Node.js
+node_modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.eslintcache
+
+# Compilaciones y Salidas
+dist/
+# Excepciones para permitir carpetas dist en plugins de WordPress
+!apps/portal-web-infounsa/wordpress/wp-content/plugins/**/dist/
+!apps/portal-web-infounsa/wordpress/wp-content/plugins/**/dist/**
+build/
+coverage/
+.nyc_output
+*.tsbuildinfo
+
+# Variables de Entorno (¡Nunca subir archivos .env reales!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Excepto el ejemplo
+!.env.example
+
+# Sistema y Editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# Bases de Datos Locales y Archivos SQLite (SQLCipher)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Docker y Contenedores (Logs, Volúmenes y Datos Locales)
+logs/
+*.log
+.docker/
+docker-compose.override.yml
+.local-develop/
+
+# WordPress específico (apps/portal-web-infounsa/wordpress/)
+# Configuración local/sensible
+apps/portal-web-infounsa/wordpress/wp-config.php
+apps/portal-web-infounsa/wordpress/.htaccess
+# Cachés y archivos temporales
+apps/portal-web-infounsa/wordpress/wp-content/cache/
+apps/portal-web-infounsa/wordpress/wp-content/upgrade/
+apps/portal-web-infounsa/wordpress/wp-content/backups/
+apps/portal-web-infounsa/wordpress/wp-content/uploads/koko-analytics/
+apps/portal-web-infounsa/wordpress/wp-content/wflogs/
+
+# Electron compilaciones y descargas de instaladores grandes
+dist-electron/
+apps/portal-general/frontend/downloads/*.exe
+artifacts/
+
+# Salidas locales del pipeline y estado de herramientas de seguridad
+qa/reports/local-ci/
+qa/reports/local-pipeline/security-tools-manual/
+qa/reports/local-pipeline/tool-state/
+qa/reports/docker-qa/
+
+# Agentes y planificación local (no versionar)
+.agents/
+.scratch/
+AGENTS.md
+GLOSSARY-MAP.md
+skills-lock.json
+docs/agents/
+
+# Scripts de servidores / instaladores
+.run/
+instaladores/
+
+# ==============================================================================
+# Documentación interna de proceso (no forma parte de la entrega al cliente)
+# Se conservan: README, guías de instalación/despliegue, manuales y docs/despliegue, docs/operacion
+# ==============================================================================
+docs/00_indice/
+docs/01_requisitos/
+docs/02_arquitectura/
+docs/03_diseno/
+docs/04_construccion/
+docs/05_devops/
+docs/05_pruebas/
+docs/06_gestion_configuracion/
+docs/07_aseguramiento_calidad/
+docs/08_seguimiento_control/
+docs/09_evidencias/
+docs/10_planes/
+docs/auditoria/
+docs/auditoria-seguridad/
+docs/seguridad/
+docs/sincronizacion/
+docs/qa-testing/
+docs/plan-solicitud-cambio-reportes.md
+
+# Documentos de gestión en la raíz
+ACTUALIZACION-DOCUMENTACION-ARQUITECTURA.md
+Plan_de_Actualizacion_InfoUNSA.pdf
+plan_actualizacion.html
+bitacora-errores-vps.md
+sprint-04-backlog.csv
+tareas-actualizacion-informe-final.md
+tareas-yoset-26.md
+pipelines_configuracion.md
+guia-runner-local.md
+parse_pdf.js
+
+# Evidencias y reportes de pruebas
+qa/reports/
+qa/scripts-pruebas-de-sistema/evidencias/
+
+# Material temporal de referencia
+arch temporales/
+
+# Resultados de ejecuciones de pruebas (no forman parte de la entrega)
+qa/postman/**/resultados/
+apps/asistencia/api/codigo*.png

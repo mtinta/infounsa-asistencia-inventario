@@ -1,0 +1,26 @@
+{
+  "name": "@infounsa/shared-types",
+  "version": "1.0.0",
+  "description": "Tipos TypeScript compartidos para Plataforma InfoUNSA",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc && cp src/electron-api.d.ts dist/"
+  }
+}

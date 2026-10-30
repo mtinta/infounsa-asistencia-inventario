@@ -1,0 +1,34 @@
+{
+  "name": "@infounsa/shared-ui",
+  "version": "1.0.0",
+  "description": "Componentes de UI y cliente API compartidos de Plataforma InfoUNSA",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@infounsa/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.9.3"
+  }
+}

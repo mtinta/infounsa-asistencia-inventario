@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-06-20T22:00:00-05:00",
+  "applications": [
+    {
+      "id": "asistencia-desktop",
+      "name": "InfoUNSA Asistencia Desktop",
+      "description": "Cliente de registro de asistencia Offline-First para terminales en garitas.",
+      "platform": "windows",
+      "architecture": "x64",
+      "channel": "stable",
+      "version": "1.0.0",
+      "publishedAt": "2026-06-20T18:00:00-05:00",
+      "filename": "InfoUNSA-Asistencia-Setup-1.0.0-x64.exe",
+      "downloadUrl": "/downloads/asistencia/InfoUNSA-Asistencia-Setup-1.0.0-x64.exe",
+      "sizeBytes": 104959375,
+      "sha256": "88C2D02A0F89B8068E365B1EEC0F9F77228459160BC1B567E8BACC7DD3910AEF",
+      "releaseNotesUrl": "/releases/asistencia/1.0.0.html",
+      "minimumWindowsVersion": "Windows 10",
+      "signed": false,
+      "status": "available"
+    },
+    {
+      "id": "inventario-desktop",
+      "name": "InfoUNSA Inventario Desktop",
+      "description": "Cliente de administración de almacén Offline-First para sedes.",
+      "platform": "windows",
+      "architecture": "x64",
+      "channel": "stable",
+      "version": "1.0.0",
+      "publishedAt": "2026-06-20T18:00:00-05:00",
+      "filename": "InfoUNSA-Inventario-Setup-1.0.0-x64.exe",
+      "downloadUrl": "/downloads/inventario/InfoUNSA-Inventario-Setup-1.0.0-x64.exe",
+      "sizeBytes": 82961822,
+      "sha256": "392EFBAFCD268ABC03F6A82475FFD383B40C96B4620496E67EB97D9BF5C583C7",
+      "releaseNotesUrl": "/releases/inventario/1.0.0.html",
+      "minimumWindowsVersion": "Windows 10",
+      "signed": false,
+      "status": "available"
+    }
+  ]
+}

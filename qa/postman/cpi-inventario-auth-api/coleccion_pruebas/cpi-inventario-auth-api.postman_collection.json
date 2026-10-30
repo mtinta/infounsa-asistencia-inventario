@@ -1,0 +1,737 @@
+{
+  "info": {
+    "_postman_id": "8d0e5508-0575-4da1-8ad6-189cf1d772b1",
+    "name": "CPI Inventario - API de Autenticacion",
+    "description": "Coleccion Postman/Newman alineada con docs/07_aseguramiento_calidad/casos_de_pruebas/pruebas_de_integracion/cpi-inventario-auth-api.md. Cubre autenticacion, validacion, renovacion JWT y proteccion de endpoints de Inventario.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === 'Precondicion - API inventario saludable' || !pm.environment.get('authRunId')) {",
+          "  const runId = Date.now().toString();",
+          "  pm.environment.set('authRunId', runId);",
+          "  pm.environment.set('testUsername', `qa_inv_auth_${runId}`);",
+          "  pm.environment.set('testEmail', `qa_inv_auth_${runId}@example.test`);",
+          "  pm.environment.set('alternateUsername', `qa_inv_auth_alt_${runId}`);",
+          "  pm.environment.set('testPassword', 'QaInventario123*');",
+          "  pm.environment.set('testFullName', `QA Inventario Auth ${runId}`);",
+          "}",
+          "function encodeBase64Url(wordArray) {",
+          "  return CryptoJS.enc.Base64.stringify(wordArray).replace(/=+$/, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+          "}",
+          "function qaJwt(payload) {",
+          "  const header = encodeBase64Url(CryptoJS.enc.Utf8.parse(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));",
+          "  const encodedPayload = encodeBase64Url(CryptoJS.enc.Utf8.parse(JSON.stringify(payload)));",
+          "  const unsigned = `${header}.${encodedPayload}`;",
+          "  const signature = encodeBase64Url(CryptoJS.HmacSHA256(unsigned, pm.environment.get('jwtSecret')));",
+          "  return `${unsigned}.${signature}`;",
+          "}",
+          "const now = Math.floor(Date.now() / 1000);",
+          "pm.environment.set('expiredRefreshToken', qaJwt({ sub: 1, username: 'qa_expired', role: 'operador', subsystem: 'inventario', iat: now - 7200, exp: now - 3600 }));",
+          "pm.environment.set('foreignSubsystemToken', qaJwt({ sub: 1, username: 'qa_foreign', role: 'operador', subsystem: 'asistencia', iat: now, exp: now + 3600 }));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:43001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Precondicion - API inventario saludable",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('MySQL/MariaDB conectada', () => { pm.expect(json.status).to.eql('ok'); pm.expect(json.database).to.eql('connected'); });",
+              "pm.test('Identifica inventario-api', () => pm.expect(json.service).to.eql('inventario-api'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-03 Registro exitoso de operador",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{testFullName}}\",\n  \"email\": \"{{testEmail}}\",\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna operador activo sin password', () => { pm.expect(json.user.username).to.eql(pm.environment.get('testUsername')); pm.expect(json.user.email).to.eql(pm.environment.get('testEmail')); pm.expect(json.user.role).to.eql('operador'); pm.expect(json.user.status).to.eql('activo'); pm.expect(json.user).to.not.have.property('password'); });",
+              "pm.environment.set('registeredUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-04 Registro con username duplicado",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{testFullName}}\",\n  \"email\": \"{{testEmail}}\",\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "const json = pm.response.json();",
+              "pm.test('Informa conflicto de username', () => pm.expect(String(json.message || '').toLowerCase()).to.include('usuario'));",
+              "pm.test('No retorna usuario ni tokens', () => { pm.expect(json).to.not.have.property('user'); pm.expect(json).to.not.have.property('access_token'); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-07 Registro con email duplicado",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"QA Email Duplicado\",\n  \"email\": \"{{testEmail}}\",\n  \"username\": \"{{alternateUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "const json = pm.response.json();",
+              "pm.test('Informa conflicto de correo', () => pm.expect(String(json.message || '').toLowerCase()).to.match(/correo|email/));",
+              "pm.test('No crea segundo usuario', () => pm.expect(json).to.not.have.property('user'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-08.1 Rechazar email y username invalidos",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"QA Registro Invalido\",\n  \"email\": \"correo-invalido\",\n  \"username\": \"qa usuario!\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.test('Reporta email y username invalidos', () => { const message = [].concat(json.message || []).join(' ').toLowerCase(); pm.expect(message).to.include('correo'); pm.expect(message).to.include('usuario'); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-08.2 Rechazar longitudes minimas",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Q\",\n  \"email\": \"qa-short@example.test\",\n  \"username\": \"qa\",\n  \"password\": \"1234567\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.test('Reporta reglas de longitud', () => pm.expect([].concat(json.message || []).length).to.be.at.least(3));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-08.3 Rechazar campo desconocido",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"QA Campo Desconocido\",\n  \"email\": \"qa-extra@example.test\",\n  \"username\": \"qa_extra_field\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"administrador\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.test('Identifica campo no permitido', () => pm.expect([].concat(json.message || []).join(' ').toLowerCase()).to.include('role'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-01 Login exitoso",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna access, refresh y usuario sin password', () => { pm.expect(json.access_token).to.be.a('string').and.not.empty; pm.expect(json.refresh_token).to.be.a('string').and.not.empty; pm.expect(json.user.username).to.eql(pm.environment.get('testUsername')); pm.expect(json.user).to.not.have.property('password'); });",
+              "pm.environment.set('accessToken', json.access_token);",
+              "pm.environment.set('refreshToken', json.refresh_token);",
+              "pm.environment.set('authenticatedUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-02 Login con usuario inexistente",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"usuario_inexistente_qa\",\n  \"password\": \"PasswordIncorrecto123*\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "const json = pm.response.json();",
+              "pm.test('No entrega tokens', () => { pm.expect(String(json.message || '').toLowerCase()).to.include('credenciales'); pm.expect(json).to.not.have.property('access_token'); pm.expect(json).to.not.have.property('refresh_token'); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-06 Login con password incorrecto",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"password\": \"PasswordIncorrecto123*\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "const json = pm.response.json();",
+              "pm.test('No entrega tokens', () => { pm.expect(String(json.message || '').toLowerCase()).to.include('credenciales'); pm.expect(json).to.not.have.property('access_token'); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-05 Refresh exitoso",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna nuevo access token', () => pm.expect(json.access_token).to.be.a('string').and.not.empty);",
+              "pm.environment.set('refreshedAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-09 Refresh token ausente",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No retorna access token', () => pm.expect(pm.response.json()).to.not.have.property('access_token'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-10 Refresh token invalido",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"token.qa.invalido\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No retorna access token', () => pm.expect(pm.response.json()).to.not.have.property('access_token'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-11 Refresh token expirado",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"{{expiredRefreshToken}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No retorna access token', () => pm.expect(pm.response.json()).to.not.have.property('access_token'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-13 Acceso protegido sin token",
+      "auth": {
+        "type": "noauth"
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No expone catalogo', () => pm.expect(pm.response.json()).to.not.have.property('data'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-14 Acceso protegido con token invalido",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "token.qa.invalido",
+            "type": "string"
+          }
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No expone catalogo', () => pm.expect(pm.response.json()).to.not.have.property('data'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-15 Rechazar token de otro subsistema",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{foreignSubsystemToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No expone catalogo', () => pm.expect(pm.response.json()).to.not.have.property('data'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-17.1 Validar claims y vigencia del JWT",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items?page=1&limit=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.environment.get('accessToken');",
+              "const encodedPayload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "const paddedPayload = encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');",
+              "const payload = JSON.parse(decodeURIComponent(escape(atob(paddedPayload))));",
+              "pm.test('Claims obligatorios presentes', () => { ['sub', 'username', 'role', 'subsystem', 'iat', 'exp'].forEach((claim) => pm.expect(payload).to.have.property(claim)); });",
+              "pm.test('Claims coherentes y vigentes', () => { pm.expect(payload.username).to.eql(pm.environment.get('testUsername')); pm.expect(payload.role).to.eql('operador'); pm.expect(payload.subsystem).to.eql('inventario'); pm.expect(payload.exp).to.be.above(payload.iat); pm.expect(payload.exp).to.be.above(Math.floor(Date.now() / 1000)); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-AUTH-17.2 Acceder a ruta protegida con JWT emitido",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{accessToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory-items?page=1&limit=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Token permite acceso protegido', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

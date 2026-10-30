@@ -1,0 +1,18 @@
+:root {
+  /* InfoUNSA Oficiales */
+  --infounsa-blue: #14387f; /* Pantone 294 C */
+  --infounsa-teal: #006c7d; /* Pantone 5473 C */
+  
+  /* Sistema Base */
+  --font-family: 'Outfit', sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Espaciados */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}

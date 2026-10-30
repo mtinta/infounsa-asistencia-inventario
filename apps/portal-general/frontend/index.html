@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal InfoUNSA — Servicios y Aplicaciones</title>
+  <meta name="description" content="Centro de acceso a los sistemas institucionales de InfoUNSA. Descargue aplicaciones, consulte el estado de servicios y acceda a recursos.">
+
+  <!-- Tipografía Institucional: Montserrat (título) + Open Sans (cuerpo) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons CDN (iconos técnicos SVG) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Socket.IO Client para KPIs en tiempo real del IIS Dashboard -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- HEADER INSTITUCIONAL -->
+  <header class="portal-header" role="banner">
+    <div class="container header-inner">
+      <!-- Bloque Logo conforme al manual: símbolo + texto separado -->
+      <a href="/" class="brand" aria-label="Ir al inicio de InfoUNSA">
+        <div class="brand-mark">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="40" height="40" rx="4" fill="#14387F"/>
+            <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Montserrat, sans-serif" font-size="22" font-weight="800">i</text>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">InfoUNSA</span>
+          <span class="brand-tagline">Instituto de Informática · UNSA</span>
+        </div>
+      </a>
+
+      <nav class="header-nav" aria-label="Navegación principal">
+        <a href="#" class="nav-link active" id="tab-downloads">Descargas y Apps</a>
+        <a href="#" class="nav-link" id="tab-iis">Cuadro de Mando (IIS)</a>
+      </nav>
+
+      <div class="header-meta">
+        <span class="clock" id="system-time" aria-label="Hora actual">--:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <div id="view-downloads">
+  <!-- HERO INSTITUCIONAL -->
+  <section class="portal-hero" aria-labelledby="hero-title">
+    <div class="container hero-inner">
+      <div class="hero-content">
+        <p class="hero-eyebrow">Sistema institucional centralizado</p>
+        <h1 id="hero-title">Servicios digitales<br><span class="hero-accent">InfoUNSA</span></h1>
+        <p class="hero-desc">Acceda a los sistemas de gestión, descargue las aplicaciones de escritorio certificadas y consulte el estado operativo de los servicios en tiempo real.</p>
+      </div>
+      <div class="hero-stats" aria-label="Estadísticas del sistema">
+        <div class="stat-item">
+          <span class="stat-num">2</span>
+          <span class="stat-label">Aplicaciones</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item">
+          <span class="stat-num" id="services-online">—</span>
+          <span class="stat-label">Servicios activos</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat-item">
+          <span class="stat-num">v1.0</span>
+          <span class="stat-label">Versión estable</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATÁLOGO DE APLICACIONES -->
+  <main class="container portal-main" id="apps">
+    <section class="section-apps" aria-labelledby="apps-title">
+      <header class="section-header">
+        <h2 id="apps-title">Catálogo de aplicaciones</h2>
+        <p class="section-subtitle">Seleccione la aplicación que desea usar o instalar. Las aplicaciones de escritorio requieren instalación previa en Windows.</p>
+      </header>
+
+      <div class="apps-grid" id="apps-grid">
+
+        <!-- CARD: Sistema de Asistencia -->
+        <article class="app-card" id="card-asistencia" aria-label="Sistema de Asistencia">
+          <div class="card-top">
+            <div class="app-icon app-icon--asistencia" aria-hidden="true">
+              <i data-lucide="clock-3" class="icon"></i>
+            </div>
+            <div class="app-type-badge badge--desktop">
+              <i data-lucide="monitor" class="badge-icon" aria-hidden="true"></i>
+              ESCRITORIO
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="service-status" aria-live="polite">
+              <span class="status-dot" id="dot-asistencia" aria-hidden="true"></span>
+              <span class="status-label" id="lbl-asistencia">Verificando…</span>
+            </div>
+            <h3 class="app-name">Asistencia</h3>
+            <p class="app-desc">Registro de entrada y salida del personal mediante lector de DNI o código de barras. Funciona sin conexión a internet.</p>
+            <ul class="app-features" aria-label="Características">
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Soporte Offline-First</li>
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Lector DNI por escáner</li>
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Sincronización automática</li>
+            </ul>
+          </div>
+
+          <div class="card-meta" id="meta-asistencia">
+            <span class="meta-tag"><i data-lucide="package" aria-hidden="true"></i> <span id="ver-asistencia">Cargando versión…</span></span>
+            <span class="meta-tag"><i data-lucide="hard-drive" aria-hidden="true"></i> Windows x64</span>
+          </div>
+
+          <div class="card-actions">
+            <a href="#" class="btn btn--primary" id="btn-dl-asistencia-desktop" download aria-label="Descargar instalador de Asistencia">
+              <i data-lucide="download" aria-hidden="true"></i> Descargar instalador
+            </a>
+            <button class="btn btn--ghost" id="btn-copy-asistencia-desktop" aria-label="Copiar enlace de descarga de Asistencia">
+              <i data-lucide="link-2" aria-hidden="true"></i> Copiar enlace
+            </button>
+          </div>
+        </article>
+
+        <!-- CARD: Sistema de Inventario -->
+        <article class="app-card" id="card-inventario" aria-label="Sistema de Inventario">
+          <div class="card-top">
+            <div class="app-icon app-icon--inventario" aria-hidden="true">
+              <i data-lucide="package-2" class="icon"></i>
+            </div>
+            <div class="app-type-badge badge--desktop">
+              <i data-lucide="monitor" class="badge-icon" aria-hidden="true"></i>
+              ESCRITORIO
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="service-status" aria-live="polite">
+              <span class="status-dot" id="dot-inventario" aria-hidden="true"></span>
+              <span class="status-label" id="lbl-inventario">Verificando…</span>
+            </div>
+            <h3 class="app-name">Inventario y Almacén</h3>
+            <p class="app-desc">Administración de bienes, consumibles y equipos institucionales. Control por sede, responsable y categoría.</p>
+            <ul class="app-features" aria-label="Características">
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Control por multi-sede</li>
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Alertas de stock crítico</li>
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Exportación de reportes</li>
+            </ul>
+          </div>
+
+          <div class="card-meta" id="meta-inventario">
+            <span class="meta-tag"><i data-lucide="package" aria-hidden="true"></i> <span id="ver-inventario">Cargando versión…</span></span>
+            <span class="meta-tag"><i data-lucide="hard-drive" aria-hidden="true"></i> Windows x64</span>
+          </div>
+
+          <div class="card-actions">
+            <a href="#" class="btn btn--primary" id="btn-dl-inventario-desktop" download aria-label="Descargar instalador de Inventario">
+              <i data-lucide="download" aria-hidden="true"></i> Descargar instalador
+            </a>
+            <button class="btn btn--ghost" id="btn-copy-inventario-desktop" aria-label="Copiar enlace de descarga de Inventario">
+              <i data-lucide="link-2" aria-hidden="true"></i> Copiar enlace
+            </button>
+          </div>
+        </article>
+
+        <!-- CARD: Portal Web Institucional -->
+        <article class="app-card app-card--web" id="card-web" aria-label="Portal Web Institucional">
+          <div class="card-top">
+            <div class="app-icon app-icon--web" aria-hidden="true">
+              <i data-lucide="globe-2" class="icon"></i>
+            </div>
+            <div class="app-type-badge badge--web">
+              <i data-lucide="wifi" class="badge-icon" aria-hidden="true"></i>
+              WEB
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="service-status">
+              <span class="status-dot status--online" aria-label="En línea"></span>
+              <span class="status-label" style="color: var(--color-online);">Operativo</span>
+            </div>
+            <h3 class="app-name">Portal Institucional</h3>
+            <p class="app-desc">Acceso a información institucional, publicaciones, servicios académicos y convenios. No requiere instalación.</p>
+            <ul class="app-features" aria-label="Características">
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Acceso inmediato vía navegador</li>
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Sin instalación requerida</li>
+              <li><i data-lucide="check-circle-2" aria-hidden="true"></i> Compatible con todos los sistemas</li>
+            </ul>
+          </div>
+
+          <div class="card-meta">
+            <span class="meta-tag"><i data-lucide="globe" aria-hidden="true"></i> Servicio web activo</span>
+          </div>
+
+          <div class="card-actions">
+            <a href="https://infounsa.edu.pe" target="_blank" rel="noopener noreferrer" class="btn btn--primary" aria-label="Abrir portal institucional en nueva pestaña">
+              <i data-lucide="external-link" aria-hidden="true"></i> Abrir portal
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- SECCIÓN ESTADO -->
+    <section class="section-status" id="soporte" aria-labelledby="status-title">
+      <header class="section-header">
+        <h2 id="status-title">Estado de los servicios</h2>
+        <p class="section-subtitle">Monitoreo en tiempo real. La verificación se actualiza cada 30 segundos.</p>
+      </header>
+      <div class="status-table-wrap">
+        <table class="status-table" aria-label="Estado de servicios del sistema">
+          <thead>
+            <tr>
+              <th scope="col">Servicio</th>
+              <th scope="col">Estado</th>
+              <th scope="col">Latencia</th>
+              <th scope="col">Última verificación</th>
+            </tr>
+          </thead>
+          <tbody id="status-tbody">
+            <tr>
+              <td>Backend Asistencia</td>
+              <td><span class="status-pill" id="pill-asistencia">Verificando…</span></td>
+              <td id="lat-asistencia">—</td>
+              <td id="time-asistencia">—</td>
+            </tr>
+            <tr>
+              <td>Backend Inventario</td>
+              <td><span class="status-pill" id="pill-inventario">Verificando…</span></td>
+              <td id="lat-inventario">—</td>
+              <td id="time-inventario">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <div id="view-iis" class="hidden">
+    <!-- HERO DASHBOARD IIS -->
+    <section class="portal-hero" style="background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-teal-dark) 100%); padding: var(--space-8) 0;">
+      <div class="container hero-inner">
+        <div class="hero-content">
+          <p class="hero-eyebrow">Cuadro de mando analítico consolidado</p>
+          <h1 style="font-family: var(--font-heading); font-size: var(--text-4xl); font-weight: 800; color: #fff; margin-bottom: 8px;">Institutional Intelligence System (IIS)</h1>
+          <p class="hero-desc">Monitoreo centralizado del patrimonio valorizado de InfoUNSA e indicadores operativos de control de asistencia.</p>
+        </div>
+        <!-- Indicador de conexión WebSocket -->
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 16px;">
+          <span id="ws-status-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #6b7280; display: inline-block; transition: background 0.4s;"></span>
+          <span id="ws-status-label" style="color: rgba(255,255,255,0.7); font-size: 13px;">Conectando al sistema...</span>
+          <span id="iis-last-update" style="color: rgba(255,255,255,0.5); font-size: 12px; margin-left: 16px;"></span>
+        </div>
+      </div>
+    </section>
+    
+    <main class="container portal-main" style="padding: var(--space-6) 0;">
+      <!-- Grid de Indicadores Principales (KPIs) -->
+      <div class="kpis-grid">
+        <!-- KPI: Asistencia Hoy (actualizado por WebSocket) -->
+        <div class="kpi-card" style="border-left: 4px solid var(--brand-blue);">
+          <div class="kpi-header">
+            <span class="kpi-title">Asistencias Hoy</span>
+            <div class="kpi-icon" style="color: var(--brand-blue);">
+              <i data-lucide="users"></i>
+            </div>
+          </div>
+          <h3 class="kpi-value" id="iis-kpi-attendance" style="color: var(--brand-blue);">—</h3>
+          <p class="kpi-meta" style="color: var(--color-online);">
+            <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i>
+            <span id="iis-kpi-users">—</span> operadores registrados
+          </p>
+        </div>
+
+        <!-- KPI: Patrimonio Valorizado -->
+        <div class="kpi-card" style="border-left: 4px solid var(--brand-teal);">
+          <div class="kpi-header">
+            <span class="kpi-title">Patrimonio Valorizado</span>
+            <div class="kpi-icon" style="color: var(--brand-teal);">
+              <i data-lucide="coins"></i>
+            </div>
+          </div>
+          <h3 class="kpi-value" style="color: var(--brand-teal);">S/ 4.2M</h3>
+          <p class="kpi-meta" style="color: var(--text-secondary);">
+            <i data-lucide="package-2" style="width: 14px; height: 14px;"></i>
+            En 845 bienes catalogados
+          </p>
+        </div>
+
+        <!-- KPI: Alertas Críticas (pendientes de sync) -->
+        <div class="kpi-card" style="border-left: 4px solid var(--color-warning);">
+          <div class="kpi-header">
+            <span class="kpi-title">Pendientes de Sync</span>
+            <div class="kpi-icon" style="color: var(--color-warning);">
+              <i data-lucide="alert-triangle"></i>
+            </div>
+          </div>
+          <h3 class="kpi-value" id="iis-kpi-sync" style="color: var(--color-warning);">—</h3>
+          <p class="kpi-meta" style="color: var(--color-offline);">
+            <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+            Registros locales sin enviar
+          </p>
+        </div>
+
+        <!-- KPI: Sedes Activas -->
+        <div class="kpi-card" style="border-left: 4px solid var(--color-online);">
+          <div class="kpi-header">
+            <span class="kpi-title">Sedes Activas</span>
+            <div class="kpi-icon" style="color: var(--color-online);">
+              <i data-lucide="refresh-cw"></i>
+            </div>
+          </div>
+          <h3 class="kpi-value" id="iis-kpi-sedes" style="color: var(--color-online);">—</h3>
+          <p class="kpi-meta" style="color: var(--text-secondary);">
+            <i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: var(--color-online);"></i>
+            Sedes con actividad en 7 días
+          </p>
+        </div>
+      </div>
+
+      <!-- Bento Grid para Gráficos -->
+      <div class="charts-bento">
+        <!-- Gráfico 1 (Tendencia Asistencia) -->
+        <div class="chart-card">
+          <h4 class="chart-title">
+            <i data-lucide="bar-chart-3" style="width: 18px; height: 18px;"></i>
+            Tendencia Semanal de Asistencia
+          </h4>
+          <div class="chart-container">
+            <div class="bar-col">
+              <div class="bar-track">
+                <div class="bar-fill" style="height: 60%;"></div>
+              </div>
+              <span class="bar-label">Lun</span>
+            </div>
+            <div class="bar-col">
+              <div class="bar-track">
+                <div class="bar-fill" style="height: 85%;"></div>
+              </div>
+              <span class="bar-label">Mar</span>
+            </div>
+            <div class="bar-col">
+              <div class="bar-track">
+                <div class="bar-fill" style="height: 90%;"></div>
+              </div>
+              <span class="bar-label">Mié</span>
+            </div>
+            <div class="bar-col">
+              <div class="bar-track">
+                <div class="bar-fill bar-fill-teal" style="height: 40%;"></div>
+              </div>
+              <span class="bar-label">Jue</span>
+            </div>
+            <div class="bar-col">
+              <div class="bar-track">
+                <div class="bar-fill" style="height: 75%;"></div>
+              </div>
+              <span class="bar-label">Vie</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Distribución de Patrimonio -->
+        <div class="chart-card">
+          <h4 class="chart-title">
+            <i data-lucide="pie-chart" style="width: 18px; height: 18px;"></i>
+            Distribución de Patrimonio
+          </h4>
+          <div class="dist-list">
+            <div class="dist-item">
+              <div class="dist-info">
+                <span>Mobiliario y Oficina</span>
+                <span>45%</span>
+              </div>
+              <div class="dist-bar-bg">
+                <div class="dist-bar-fill" style="width: 45%; background-color: var(--brand-blue);"></div>
+              </div>
+            </div>
+            <div class="dist-item">
+              <div class="dist-info">
+                <span>Equipos Informáticos</span>
+                <span>38%</span>
+              </div>
+              <div class="dist-bar-bg">
+                <div class="dist-bar-fill" style="width: 38%; background-color: var(--brand-teal);"></div>
+              </div>
+            </div>
+            <div class="dist-item">
+              <div class="dist-info">
+                <span>Vehículos y Equipos</span>
+                <span>17%</span>
+              </div>
+              <div class="dist-bar-bg">
+                <div class="dist-bar-fill" style="width: 17%; background-color: var(--color-warning);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Actividades de Sincronización Recientes -->
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);">
+        <div style="padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border); background-color: var(--bg-card-alt); display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="history" style="width: 16px; height: 16px; color: var(--brand-blue);"></i>
+          <h4 style="font-size: var(--text-sm); font-family: var(--font-heading); font-weight: 700; color: var(--text-primary); margin: 0;">Historial de Sincronización Global</h4>
+        </div>
+        <table class="status-table" aria-label="Historial de sincronización global" style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--bg-card-alt); border-bottom: 1px solid var(--border);">
+              <th scope="col" style="padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: left;">ID Sync</th>
+              <th scope="col" style="padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: left;">Terminal</th>
+              <th scope="col" style="padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: left;">Módulo</th>
+              <th scope="col" style="padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: left;">Fecha Sync</th>
+              <th scope="col" style="padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; text-align: left;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px;"><code>SYNC-992</code></td>
+              <td style="padding: 12px 16px;">Kiosco Pabellón A</td>
+              <td style="padding: 12px 16px;">Asistencia</td>
+              <td style="padding: 12px 16px; font-family: monospace;">21/06/2026 11:28</td>
+              <td style="padding: 12px 16px;"><span class="status-pill pill--online" style="font-weight: 700;">EXITOSO</span></td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px;"><code>SYNC-991</code></td>
+              <td style="padding: 12px 16px;">Almacén Central</td>
+              <td style="padding: 12px 16px;">Inventario</td>
+              <td style="padding: 12px 16px; font-family: monospace;">21/06/2026 11:15</td>
+              <td style="padding: 12px 16px;"><span class="status-pill pill--online" style="font-weight: 700;">EXITOSO</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px;"><code>SYNC-990</code></td>
+              <td style="padding: 12px 16px;">Biblioteca Central</td>
+              <td style="padding: 12px 16px;">Asistencia</td>
+              <td style="padding: 12px 16px; font-family: monospace;">21/06/2026 10:45</td>
+              <td style="padding: 12px 16px;"><span class="status-pill pill--online" style="font-weight: 700;">EXITOSO</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="portal-footer" role="contentinfo">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="footer-name">InfoUNSA</span>
+        <span class="footer-sub">Instituto de Informática de la UNSA · Arequipa, Perú</span>
+      </div>
+      <div class="footer-links">
+        <a href="estado.html">Estado de Servicios</a>
+        <a href="#">Soporte Técnico</a>
+        <a href="#">Política de privacidad</a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="index.js"></script>
+  <script>
+    // Initialize Lucide icons
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

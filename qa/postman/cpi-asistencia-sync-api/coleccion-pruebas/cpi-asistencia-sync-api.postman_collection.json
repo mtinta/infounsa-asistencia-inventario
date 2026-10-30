@@ -1,0 +1,1452 @@
+{
+  "info": {
+    "_postman_id": "8f1779cb-1d2b-4c7a-8640-fb26d187d479",
+    "name": "CPI Asistencia - Marcaciones y Sincronizacion",
+    "description": "Implementacion Postman/Newman de marcaciones y sincronizacion. La matriz CPI-AST-SYNC-20 centraliza autorizacion; CPI-AST-SYNC-01 y CPI-AST-SYNC-22 usan datos independientes para evitar fallos encadenados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - API asistencia saludable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('MySQL/MariaDB conectada', () => { pm.expect(json.status).to.eql('ok'); pm.expect(json.database).to.eql('connected'); });",
+              "pm.test('Identifica asistencia-api', () => pm.expect(json.service).to.eql('asistencia-api'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login operador semilla",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{operatorUsername}}\",\n  \"password\": \"{{operatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Rol operador', () => pm.expect(json.user.role).to.eql('operador'));",
+              "pm.environment.set('operatorAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Registrar usuario sin privilegios",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"QA Usuario Sync\",\n  \"email\": \"{{basicEmail}}\",\n  \"username\": \"{{basicUsername}}\",\n  \"password\": \"{{basicPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login usuario sin privilegios",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{basicUsername}}\",\n  \"password\": \"{{basicPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Rol usuario', () => pm.expect(json.user.role).to.eql('usuario'));",
+              "pm.environment.set('basicAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-20.1 Rechazar sync sin JWT",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n      \"id_operacion_local\": \"{{unauthorizedSyncOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-01 Registrar marca directa valida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario_id\": \"{{attendanceUserId}}\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"fecha_hora_marca\": \"{{markTimestamp}}\",\n  \"id_operacion_local\": \"{{directOperation}}\",\n  \"tipo\": \"entrada\",\n  \"observacion\": \"Registro directo QA\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Persiste referencias y operacion', () => { pm.expect(json.id_operacion_local).to.eql(pm.environment.get('directOperation')); pm.expect(json.usuario_id).to.eql(pm.environment.get('attendanceUserId')); });",
+              "pm.test('No es duplicado inicial', () => pm.expect(json.duplicated).not.to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-02 Repetir marca directa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario_id\": \"{{attendanceUserId}}\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"fecha_hora_marca\": \"{{markTimestamp}}\",\n  \"id_operacion_local\": \"{{directOperation}}\",\n  \"tipo\": \"entrada\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "pm.test('Indica duplicado', () => pm.expect(pm.response.json().duplicated).to.eql(true));",
+              "pm.test('Conserva el mismo ID local', () => pm.expect(pm.response.json().id_operacion_local).to.eql(pm.environment.get('directOperation')));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-11.1 Rechazar sede inexistente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario_id\": \"{{attendanceUserId}}\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{missingSedeId}}\",\n  \"fecha_hora_marca\": \"{{markTimestamp}}\",\n  \"id_operacion_local\": \"direct-missing-sede-{{syncRunId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-03 Rechazar terminal ajeno a sede",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario_id\": \"{{attendanceUserId}}\",\n  \"terminal_id\": \"{{missingTerminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"fecha_hora_marca\": \"{{markTimestamp}}\",\n  \"id_operacion_local\": \"direct-missing-terminal-{{syncRunId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('No registra marca', () => pm.expect(pm.response.json().message).to.include('terminal'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-11.2 Rechazar usuario inexistente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario_id\": \"USR-NO-EXISTE\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"fecha_hora_marca\": \"{{markTimestamp}}\",\n  \"id_operacion_local\": \"direct-missing-user-{{syncRunId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Informa usuario no registrado', () => pm.expect(pm.response.json().message).to.include('usuario'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-11.3 Rechazar fecha invalida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario_id\": \"{{attendanceUserId}}\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"fecha_hora_marca\": \"fecha-invalida\",\n  \"id_operacion_local\": \"direct-invalid-date-{{syncRunId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-11.4 Rechazar campo desconocido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario_id\": \"{{attendanceUserId}}\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"fecha_hora_marca\": \"{{markTimestamp}}\",\n  \"id_operacion_local\": \"direct-extra-{{syncRunId}}\",\n  \"campo_extra\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-01 Sincronizar registro valido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"{{syncEntryOperation}}\",\n    \"usuario_id\": \"{{attendanceUserId}}\",\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": false\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Procesa una marca nueva', () => { pm.expect(json.success).to.eql(true); pm.expect(json.stats).to.deep.include({ recibidos: 1, insertados: 1, omitidosPorDuplicado: 0 }); });",
+              "pm.test('Retorna ID procesado', () => pm.expect(json.processed_local_ids).to.include(pm.environment.get('syncEntryOperation')));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-22 Sincronizar entrada y salida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [\n    {\n      \"id_operacion_local\": \"{{syncTypeEntryOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    },\n    {\n      \"id_operacion_local\": \"{{syncTypeExitOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"salida\",\n      \"es_menor_manual\": false\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Procesa entrada y salida nuevas', () => { pm.expect(json.success).to.eql(true); pm.expect(json.stats).to.deep.include({ recibidos: 2, insertados: 2, omitidosPorDuplicado: 0 }); });",
+              "pm.test('Retorna ambos IDs', () => { pm.expect(json.processed_local_ids).to.include(pm.environment.get('syncTypeEntryOperation')); pm.expect(json.processed_local_ids).to.include(pm.environment.get('syncTypeExitOperation')); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-07 Reenviar y actualizar duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"{{syncEntryOperation}}\",\n    \"usuario_id\": \"{{attendanceUserId}}\",\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"salida\",\n    \"es_menor_manual\": false,\n    \"observacion\": \"Reintento actualizado\"\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('No inserta segunda fila', () => { pm.expect(json.stats.insertados).to.eql(0); pm.expect(json.stats.omitidosPorDuplicado).to.eql(1); });",
+              "pm.test('Reporta ID procesado', () => pm.expect(json.processed_local_ids).to.include(pm.environment.get('syncEntryOperation')));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-03 Rechazar ID local vacio",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"\",\n    \"usuario_id\": \"{{attendanceUserId}}\",\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": false\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-04 Rechazar tipo invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"sync-invalid-type-{{syncRunId}}\",\n    \"usuario_id\": \"{{attendanceUserId}}\",\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"pausa\",\n    \"es_menor_manual\": false\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-05 Rechazar terminal ajeno",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{missingTerminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n      \"id_operacion_local\": \"{{syncEntryOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('Informa relacion terminal-sede', () => pm.expect(pm.response.json().message).to.include('terminal'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-06.1 Rechazar sede sin UUID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"sede-invalida\",\n  \"registros\": [{\n      \"id_operacion_local\": \"{{syncEntryOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-06.2 Rechazar sede no asociada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{missingSedeId}}\",\n  \"registros\": [{\n      \"id_operacion_local\": \"{{syncEntryOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-08 Registrar visitante",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"{{syncVisitorOperation}}\",\n    \"usuario_id\": null,\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": false,\n    \"visitante_nombre\": \"Visitante QA\",\n    \"visitante_motivo\": \"Reunion\",\n    \"visitante_observacion\": \"Caso automatizado\"\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Inserta visitante', () => pm.expect(json.stats.insertados).to.eql(1));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-09 Registrar menor con tres caracteres",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"{{syncMinorOperation}}\",\n    \"usuario_id\": null,\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": true,\n    \"datos_menor\": { \"nombre_completo\": \"Ana\", \"dni_contingencia\": \"00000000\" }\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Inserta menor', () => pm.expect(pm.response.json().stats.insertados).to.eql(1));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-10 Rechazar menor con dos caracteres",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"sync-minor-short-{{syncRunId}}\",\n    \"usuario_id\": null,\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": true,\n    \"datos_menor\": { \"nombre_completo\": \"Al\" }\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-21 Rechazar DNI de contingencia distinto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"sync-minor-dni-{{syncRunId}}\",\n    \"usuario_id\": null,\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": true,\n    \"datos_menor\": { \"nombre_completo\": \"Ana\", \"dni_contingencia\": \"11111111\" }\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-11 Rechazar fecha invalida",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"sync-invalid-date-{{syncRunId}}\",\n    \"usuario_id\": \"{{attendanceUserId}}\",\n    \"fecha_hora_marca\": \"fecha-invalida\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": false\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-13 Aceptar ID local textual",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n      \"id_operacion_local\": \"{{textOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.set('textOperation', `kiosk-lima-turno-${pm.environment.get('syncRunId')}`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Acepta texto no UUID', () => pm.expect(pm.response.json().stats.insertados).to.eql(1));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-14 Resolver usuario por DNI",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"{{syncFallbackOperation}}\",\n    \"usuario_id\": \"usr-{{attendanceUserDni}}\",\n    \"dni\": \"{{attendanceUserDni}}\",\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": false\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Inserta usando fallback', () => pm.expect(pm.response.json().stats.insertados).to.eql(1));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-15 Conservar estado de auditoria",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"{{syncAuditOperation}}\",\n    \"usuario_id\": \"{{attendanceUserId}}\",\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": false,\n    \"estado_auditoria\": \"editado\"\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Inserta marca auditada', () => pm.expect(pm.response.json().stats.insertados).to.eql(1));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-17 Rechazar campo desconocido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n      \"id_operacion_local\": \"{{syncMixedOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false,\n      \"campo_extra\": true\n    }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-19 Rechazar identificador inseguro",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n    \"id_operacion_local\": \"sync-unsafe-user-{{syncRunId}}\",\n    \"usuario_id\": \"usr$inseguro\",\n    \"fecha_hora_marca\": \"{{markTimestamp}}\",\n    \"tipo\": \"entrada\",\n    \"es_menor_manual\": false\n  }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-18.1 Enviar lote parcialmente invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [\n    {\n      \"id_operacion_local\": \"{{syncAtomicOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    },\n    {\n      \"id_operacion_local\": \"sync-atomic-invalid-{{syncRunId}}\",\n      \"usuario_id\": \"usr$inseguro\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-SYNC-18.2 Verificar rollback atomico",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [{\n      \"id_operacion_local\": \"{{syncAtomicOperation}}\",\n      \"usuario_id\": \"{{attendanceUserId}}\",\n      \"fecha_hora_marca\": \"{{markTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    }]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('La primera marca no persistio', () => { const stats = pm.response.json().stats; pm.expect(stats.insertados).to.eql(1); pm.expect(stats.omitidosPorDuplicado).to.eql(0); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === 'Precondicion - API asistencia saludable' || !pm.environment.get('syncRunId')) {",
+          "  const runId = Date.now().toString();",
+          "  pm.environment.set('syncRunId', runId);",
+          "  pm.environment.set('basicUsername', `qa_ast_basic_${runId}`);",
+          "  pm.environment.set('basicEmail', `qa_ast_basic_${runId}@example.test`);",
+          "  pm.environment.set('basicPassword', 'QaAsistencia123*');",
+          "  pm.environment.set('directOperation', `direct-${runId}`);",
+          "  pm.environment.set('directInvalidTypeOperation', `direct-invalid-type-${runId}`);",
+          "  pm.environment.set('syncEntryOperation', `sync-entry-${runId}`);",
+          "  pm.environment.set('unauthorizedSyncOperation', `sync-no-auth-${runId}`);",
+          "  pm.environment.set('forbiddenSyncOperation', `sync-basic-role-${runId}`);",
+          "  pm.environment.set('syncTypeEntryOperation', `sync-type-entry-${runId}`);",
+          "  pm.environment.set('syncTypeExitOperation', `sync-type-exit-${runId}`);",
+          "  pm.environment.set('syncVisitorOperation', `sync-visitor-${runId}`);",
+          "  pm.environment.set('syncMinorOperation', `sync-minor-${runId}`);",
+          "  pm.environment.set('syncFallbackOperation', `sync-fallback-${runId}`);",
+          "  pm.environment.set('syncAuditOperation', `sync-audit-${runId}`);",
+          "  pm.environment.set('syncAtomicOperation', `sync-atomic-${runId}`);",
+          "  pm.environment.set('syncMixedOperation', `sync-mixed-${runId}`);",
+          "}",
+          "pm.environment.set('markTimestamp', new Date().toISOString());"
+        ]
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{operatorAccessToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

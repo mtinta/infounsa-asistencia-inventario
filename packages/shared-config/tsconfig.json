@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "declarationMap": true,
+    "target": "es2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "incremental": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "esModuleInterop": true,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/.pnpm/node_modules/@types"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}

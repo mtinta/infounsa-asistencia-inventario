@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escáner de Asistencia - INFOUNSA</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 450px;
+      width: 100%;
+    }
+    h2 { color: #333; margin-bottom: 5px; }
+    p.subtitle { color: #666; font-size: 14px; margin-bottom: 25px; }
+    
+    /* Contenedor del flujo de video */
+    #reader {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #1e1e1e;
+      border: 2px solid #e0e0e0;
+    }
+    
+    .btn {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin-top: 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .btn:hover { background-color: #0056b3; }
+    .btn-stop { background-color: #dc3545; }
+    .btn-stop:hover { background-color: #bd2130; }
+    
+    #result {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 6px;
+      display: none;
+      font-weight: bold;
+      word-break: break-all;
+    }
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Control de Asistencia</h2>
+    <p class="subtitle">Plataforma INFOUNSA</p>
+    
+    <div id="reader"></div>
+
+    <button id="actionBtn" class="btn">Iniciar Cámara</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const actionBtn = document.getElementById('actionBtn');
+    const resultDiv = document.getElementById('result');
+    
+    // Configura el lector apuntando al elemento HTML 'reader'
+    const html5QrcodeScanner = new Html5Qrcode("reader");
+    let isScanning = false;
+
+    actionBtn.addEventListener('click', () => {
+      if (!isScanning) {
+        startCamera();
+      } else {
+        stopCamera();
+      }
+    });
+
+    async function startCamera() {
+      try {
+        resultDiv.style.display = 'none';
+        
+        // Configuramos los formatos que la cámara debe buscar obligatoriamente
+        const config = {
+          fps: 15, // Subimos a 15 para que escanee más rápido
+          qrbox: { width: 320, height: 160 },
+          // Habilitamos todos los formatos de códigos de barra numéricos existentes
+          formatsToSupport: [ 
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.QR_CODE 
+          ]
+        };
+
+        // Iniciamos la cámara trasera
+        await html5QrcodeScanner.start(
+          { facingMode: "environment" }, 
+          config,
+          onScanSuccess
+        );
+
+        isScanning = true;
+        actionBtn.innerText = "Detener Cámara";
+        actionBtn.classList.add("btn-stop");
+      } catch (err) {
+        showResult("Error: Asegúrate de otorgar permisos de cámara al navegador.", "error");
+      }
+    }
+
+    async function stopCamera() {
+      if (isScanning) {
+        await html5QrcodeScanner.stop();
+        isScanning = false;
+        actionBtn.innerText = "Iniciar Cámara";
+        actionBtn.classList.remove("btn-stop");
+      }
+    }
+
+    // Se ejecuta de manera automática cuando la cámara detecta líneas de código válidas
+    async function onScanSuccess(decodedText) {
+      // Detenemos la cámara momentáneamente para evitar múltiples lecturas seguidas
+      await stopCamera();
+      
+      showResult(`Código detectado: "${decodedText}". Registrando...`, "success");
+
+      // Enviamos el resultado directo a tu endpoint de lectura por medio de un FormData ficticio
+      // (O puedes enviarlo directo a tu lógica de asistencia)
+      try {
+        console.log("Enviando código al servidor:", decodedText);
+        showResult(`¡Asistencia Registrada Exitosamente!\nCódigo: ${decodedText}`, "success");
+      } catch (error) {
+        showResult("El código se leyó pero hubo un problema en el servidor.", "error");
+      }
+    }
+
+    function showResult(message, type) {
+      resultDiv.innerText = message;
+      resultDiv.className = type;
+      resultDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

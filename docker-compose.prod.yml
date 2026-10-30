@@ -1,0 +1,113 @@
+services:
+  # ============================================================================
+  # CONTROL DE ASISTENCIA (AST)
+  # ============================================================================
+  asistencia-db:
+    image: mysql:8.4
+    container_name: asistencia-db-prod
+    environment:
+      MYSQL_DATABASE: ${ASISTENCIA_DB_NAME:-infounsa_asistencia}
+      MYSQL_USER: ${ASISTENCIA_DB_USER:-infounsa}
+      MYSQL_PASSWORD: ${ASISTENCIA_DB_PASSWORD:?required}
+      MYSQL_ROOT_PASSWORD: ${ASISTENCIA_DB_ROOT_PASSWORD:?required}
+    # No ports exposed to the public internet
+    volumes:
+      - asistencia-db-prod-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u${ASISTENCIA_DB_USER:-infounsa} -p${ASISTENCIA_DB_PASSWORD:?required} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - asistencia-net-prod
+    restart: always
+
+  asistencia-api:
+    image: ${CI_REGISTRY_IMAGE:?required}/asistencia-api:latest
+    container_name: asistencia-api-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: mysql://${ASISTENCIA_DB_USER:-infounsa}:${ASISTENCIA_DB_PASSWORD:?required}@asistencia-db:3306/${ASISTENCIA_DB_NAME:-infounsa_asistencia}
+      JWT_SECRET: ${JWT_SECRET:?required}
+    depends_on:
+      asistencia-db:
+        condition: service_healthy
+    networks:
+      - asistencia-net-prod
+      - proxy-net
+    restart: always
+
+  # ============================================================================
+  # GESTIÓN DE INVENTARIO (INV)
+  # ============================================================================
+  inventario-db:
+    image: mysql:8.4
+    container_name: inventario-db-prod
+    environment:
+      MYSQL_DATABASE: ${INVENTARIO_DB_NAME:-infounsa_inventario}
+      MYSQL_USER: ${INVENTARIO_DB_USER:-infounsa}
+      MYSQL_PASSWORD: ${INVENTARIO_DB_PASSWORD:?required}
+      MYSQL_ROOT_PASSWORD: ${INVENTARIO_DB_ROOT_PASSWORD:?required}
+    # No ports exposed to the public internet
+    volumes:
+      - inventario-db-prod-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u${INVENTARIO_DB_USER:-infounsa} -p${INVENTARIO_DB_PASSWORD:?required} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - inventario-net-prod
+    restart: always
+
+  inventario-api:
+    image: ${CI_REGISTRY_IMAGE:?required}/inventario-api:latest
+    container_name: inventario-api-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: mysql://${INVENTARIO_DB_USER:-infounsa}:${INVENTARIO_DB_PASSWORD:?required}@inventario-db:3306/${INVENTARIO_DB_NAME:-infounsa_inventario}
+      JWT_SECRET_INVENTARIO: ${JWT_SECRET_INVENTARIO:?required}
+    depends_on:
+      inventario-db:
+        condition: service_healthy
+    networks:
+      - inventario-net-prod
+      - proxy-net
+    restart: always
+
+  # ============================================================================
+  # NGINX REVERSE PROXY
+  # ============================================================================
+  nginx-proxy:
+    image: nginx:1.30-alpine
+    container_name: nginx-proxy-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - asistencia-api
+      - inventario-api
+    networks:
+      - proxy-net
+    restart: always
+
+volumes:
+  asistencia-db-prod-data:
+    driver: local
+  inventario-db-prod-data:
+    driver: local
+
+networks:
+  asistencia-net-prod:
+    driver: bridge
+    internal: true
+  inventario-net-prod:
+    driver: bridge
+    internal: true
+  proxy-net:
+    driver: bridge

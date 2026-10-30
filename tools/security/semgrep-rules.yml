@@ -1,0 +1,16 @@
+rules:
+  - id: infounsa-no-eval
+    languages:
+      - javascript
+      - typescript
+    message: Evitar eval(); puede ejecutar código controlado por entrada externa.
+    severity: ERROR
+    pattern: eval($ARG)
+
+  - id: infounsa-no-dynamic-function
+    languages:
+      - javascript
+      - typescript
+    message: Evitar Function() dinámico; puede ejecutar código no confiable.
+    severity: ERROR
+    pattern: Function($ARG)

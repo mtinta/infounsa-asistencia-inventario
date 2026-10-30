@@ -1,0 +1,111 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Category {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique(map: "name") @db.VarChar(100)
+  description String?         @db.Text
+  created_at  DateTime        @default(now())
+  items       InventoryItem[]
+
+  @@map("categories")
+}
+
+model User {
+  id         Int                 @id @default(autoincrement())
+  username   String              @unique(map: "username") @db.VarChar(50)
+  email      String              @unique(map: "email") @db.VarChar(100)
+  password   String              @db.VarChar(255)
+  full_name  String              @db.VarChar(150)
+  role       String              @default("operador") @db.VarChar(50)
+  status     String              @default("activo") @db.VarChar(30)
+  created_at DateTime            @default(now())
+  movements  InventoryMovement[]
+
+  @@map("users")
+}
+
+model InventoryItem {
+  id          Int                 @id @default(autoincrement())
+  barcode     String              @unique(map: "barcode") @db.VarChar(50)
+  name        String              @db.VarChar(150)
+  description String?             @db.Text
+  quantity    Int                 @default(0)
+  min_stock   Int                 @default(5)
+  unit        String              @default("unidad") @db.VarChar(30)
+  category_id Int?
+  sede_id     Int                 @default(1)
+  status      String              @default("activo") @db.VarChar(30)
+  created_at  DateTime            @default(now())
+  updated_at  DateTime            @default(now()) @updatedAt
+  alert       Alert?
+  category    Category?           @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_inventory_items_category")
+  movements   InventoryMovement[]
+
+  @@index([category_id], map: "fk_inventory_items_category")
+  @@index([sede_id, category_id, barcode], map: "idx_inventory_items_composite")
+  @@index([name], map: "idx_inventory_items_name")
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id                 Int            @id @default(autoincrement())
+  item_id            Int?
+  type               String         @db.VarChar(20)
+  quantity           Int
+  user_id            Int?
+  destinatario_name  String?        @db.VarChar(150)
+  registered_at      DateTime
+  id_operacion_local String?        @unique(map: "id_operacion_local") @db.VarChar(150)
+  sync_status        String         @default("sincronizado") @db.VarChar(30)
+  observations       String?        @db.Text
+  created_at         DateTime       @default(now())
+  area_id            Int?
+  area               Area?          @relation(fields: [area_id], references: [id], onUpdate: NoAction, map: "fk_movements_area")
+  item               InventoryItem? @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_movements_item")
+  user               User?          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_movements_user")
+
+  @@index([user_id], map: "fk_movements_user")
+  @@index([area_id], map: "fk_movements_area")
+  @@index([id_operacion_local], map: "idx_movements_id_op_local")
+  @@index([item_id], map: "idx_movements_item_id")
+  @@index([registered_at], map: "idx_movements_registered_at")
+  @@map("inventory_movements")
+}
+
+model Area {
+  id          Int                 @id @default(autoincrement())
+  name        String              @unique(map: "name") @db.VarChar(100)
+  responsable String              @db.VarChar(150)
+  created_at  DateTime            @default(now())
+  movements   InventoryMovement[]
+
+  @@map("areas")
+}
+
+model Alert {
+  id           Int           @id @default(autoincrement())
+  item_id      Int           @unique(map: "item_id")
+  triggered_at DateTime      @default(now())
+  resolved_at  DateTime?
+  item         InventoryItem @relation(fields: [item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_alerts_item")
+
+  @@map("alerts")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  user_id    Int?
+  action     String   @db.VarChar(100)
+  details    String?  @db.Text
+  created_at DateTime @default(now())
+
+  @@map("audit_logs")
+}

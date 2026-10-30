@@ -1,0 +1,31 @@
+# Dockerfile para la API de Asistencia (Windows Server 2019 / LTSC 2019)
+# Basado en la imagen oficial de Node con Windows Server Core ltsc2019
+FROM node:20-windowsservercore-ltsc2019
+
+WORKDIR C:\app
+
+# Copiar archivos de dependencias
+COPY apps/asistencia/api/package*.json ./
+
+# Instalar dependencias en el contenedor de Windows
+RUN npm install
+
+# Copiar estructura de la aplicación
+COPY apps/asistencia/api/src ./src
+COPY apps/asistencia/api/prisma ./prisma
+COPY apps/asistencia/api/tsconfig.json ./
+COPY apps/asistencia/api/jest.config.js ./
+
+# Generar cliente de Prisma para base de datos
+RUN npx prisma generate
+
+# Compilar la aplicación TypeScript
+RUN npm run build
+
+# Exponer puerto configurado
+EXPOSE 43000
+
+# Comando para ejecutar la API
+USER ContainerUser
+
+CMD ["node", "dist/main.js"]

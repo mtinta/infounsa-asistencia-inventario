@@ -1,0 +1,40 @@
+@import './tokens.css';
+
+:root {
+  color-scheme: light dark;
+}
+
+/* Fallback light mode */
+:root {
+  --portal-bg: #f4f6f8;
+  --portal-surface: #ffffff;
+  --portal-text: #17202a;
+  --portal-muted: #52606d;
+  --portal-border: #d8dee5;
+  --color-online: #00875A;
+  --color-warning: #FF991F;
+  --color-offline: #DE350B;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --portal-bg: #0f171c;
+    --portal-surface: #172329;
+    --portal-text: #f4f7f8;
+    --portal-muted: #b3c0c6;
+    --portal-border: #34474f;
+    --color-online: #36B37E;
+    --color-warning: #FFAB00;
+    --color-offline: #FF5630;
+  }
+}
+
+body {
+  background-color: var(--portal-bg);
+  color: var(--portal-text);
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}

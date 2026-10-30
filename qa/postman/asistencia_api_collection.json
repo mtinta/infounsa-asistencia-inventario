@@ -1,0 +1,187 @@
+{
+  "info": {
+    "_postman_id": "8fa3c5e8-fb1c-43f9-ba2a-eb4df4f664a7",
+    "name": "InfoUNSA - Módulo Asistencia API Tests",
+    "description": "Pruebas de integración automatizadas para la API del módulo de Control de Asistencia.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Database connected\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.database).to.eql(\"connected\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login Operador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Token exists and is string\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.access_token).to.be.a('string');",
+              "    pm.environment.set(\"authToken\", jsonData.access_token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sincronización de Lote (Sync marcas)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Batch was processed successfully\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.success).to.eql(true);",
+              "    pm.expect(jsonData.stats.recibidos).to.eql(1);",
+              "    pm.expect(jsonData.processed_local_ids).to.include(pm.environment.get(\"smokeOperationId\"));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"TERM-001\",\n  \"sede_id\": \"84c8a8ca-8ea4-41e9-add6-2b077bcd701a\",\n  \"registros\": [\n    {\n      \"id_operacion_local\": \"{{smokeOperationId}}\",\n      \"usuario_id\": \"USR-001\",\n      \"fecha_hora_marca\": \"{{smokeTimestamp}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false,\n      \"observacion\": \"Smoke Newman Asistencia\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/attendance/sync",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "attendance",
+            "sync"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === \"Health Check\") {",
+          "    pm.environment.set(\"smokeOperationId\", \"smoke-\" + Date.now());",
+          "}",
+          "pm.environment.set(\"smokeTimestamp\", new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:43000",
+      "type": "string"
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin123",
+      "type": "string"
+    }
+  ]
+}

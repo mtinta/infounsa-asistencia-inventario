@@ -1,0 +1,23 @@
+{
+  "name": "infounsa-pruebas-sistema",
+  "version": "1.0.0",
+  "description": "Pruebas de sistema con Playwright para la plataforma InfoUNSA",
+  "main": "index.js",
+  "scripts": {
+    "test:asistencia": "playwright test tests/asistencia --project=chromium",
+    "test:inventario": "playwright test tests/inventario --project=chromium",
+    "test:portal": "playwright test tests/portal-web --project=chromium",
+    "test:all": "playwright test --project=chromium",
+    "report:excel": "node generate-excel-report.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@types/node": "^20.14.9",
+    "@types/pg": "^8.11.6",
+    "electron": "^43.0.0",
+    "exceljs": "^4.4.0",
+    "mysql2": "^3.10.1",
+    "pg": "^8.12.0",
+    "typescript": "^5.5.2"
+  }
+}

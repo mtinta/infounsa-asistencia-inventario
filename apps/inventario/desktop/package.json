@@ -1,0 +1,59 @@
+{
+  "name": "infounsa-inventario-desktop",
+  "version": "1.3.5",
+  "description": "Cliente de escritorio Offline-First para la gestión de inventario de InfoUNSA",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"electron .\"",
+    "dist": "npm run build && electron-builder",
+    "postinstall": "electron-builder install-app-deps",
+    "test": "node --test \"src/main/**/*.test.js\""
+  },
+  "dependencies": {
+    "@infounsa/shared-types": "workspace:*",
+    "@infounsa/shared-ui": "workspace:*",
+    "@journeyapps/sqlcipher": "5.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  },
+  "build": {
+    "appId": "com.infounsa.inventario",
+    "productName": "InfoUNSA-Inventario",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "src/main/**/*",
+      "schema.sql",
+      "desktop-config.json",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "artifactName": "InfoUNSA-Inventario-Instalador-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

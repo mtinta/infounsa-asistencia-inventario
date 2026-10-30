@@ -1,0 +1,1612 @@
+{
+  "info": {
+    "_postman_id": "20f01345-4412-4a35-950f-5b82e128c28e",
+    "name": "CPI Inventario - API de Areas, Usuarios y Permisos",
+    "description": "Implementacion Postman/Newman de cpi-inventario-admin-api.md. Cubre areas, usuarios, validacion de datos, seguridad de contrasenas y autorizacion por roles.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminAccessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === 'Precondicion - API inventario saludable' || !pm.environment.get('adminRunId')) {",
+          "  const runId = Date.now().toString();",
+          "  pm.environment.set('adminRunId', runId);",
+          "  pm.environment.set('operatorUsername', `qa_admin_operator_${runId}`);",
+          "  pm.environment.set('operatorEmail', `qa_admin_operator_${runId}@example.test`);",
+          "  pm.environment.set('operatorPassword', 'QaAdminOperator123*');",
+          "  pm.environment.set('operatorFullName', `QA Admin Operator ${runId}`);",
+          "  pm.environment.set('areaName', `QA Area Admin ${runId}`);",
+          "  pm.environment.set('areaNameUpdated', `QA Area Admin Actualizada ${runId}`);",
+          "  pm.environment.set('areaResponsible', `Responsable QA ${runId}`);",
+          "  pm.environment.set('areaResponsibleUpdated', `Responsable QA Actualizado ${runId}`);",
+          "  pm.environment.set('blockedAreaName', `QA Area Bloqueada ${runId}`);",
+          "  pm.environment.set('unknownAreaName', `QA Area Campo Extra ${runId}`);",
+          "  pm.environment.set('userUsername', `qa_admin_user_${runId}`);",
+          "  pm.environment.set('userEmail', `qa_admin_user_${runId}@example.test`);",
+          "  pm.environment.set('userPassword', 'QaAdminUser123*');",
+          "  pm.environment.set('userNewPassword', 'QaAdminUser456*');",
+          "  pm.environment.set('userFullName', `QA Usuario Admin ${runId}`);",
+          "  pm.environment.set('userFullNameUpdated', `QA Usuario Admin Actualizado ${runId}`);",
+          "  pm.environment.set('alternateUsername', `qa_admin_alt_${runId}`);",
+          "  pm.environment.set('alternateEmail', `qa_admin_alt_${runId}@example.test`);",
+          "  pm.environment.set('missingPasswordUsername', `qa_admin_no_pass_${runId}`);",
+          "  pm.environment.set('missingPasswordEmail', `qa_admin_no_pass_${runId}@example.test`);",
+          "  pm.environment.set('extraFieldUsername', `qa_admin_extra_${runId}`);",
+          "  pm.environment.set('extraFieldEmail', `qa_admin_extra_${runId}@example.test`);",
+          "  pm.environment.set('missingEntityId', '2147483647');",
+          "  pm.environment.set('invalidAreaId', '0');",
+          "  pm.environment.set('missingPasswordUserId', '0');",
+          "  pm.environment.set('extraFieldUserId', '0');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Precondicion - API inventario saludable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('MySQL/MariaDB conectada', () => { pm.expect(json.status).to.eql('ok'); pm.expect(json.database).to.eql('connected'); });",
+              "pm.test('Identifica inventario-api', () => pm.expect(json.service).to.eql('inventario-api'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Registrar operador QA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{operatorFullName}}\",\n  \"email\": \"{{operatorEmail}}\",\n  \"username\": \"{{operatorUsername}}\",\n  \"password\": \"{{operatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Crea operador', () => pm.expect(json.user.role).to.eql('operador'));",
+              "pm.environment.set('operatorUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login operador QA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{operatorUsername}}\",\n  \"password\": \"{{operatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna token operador', () => pm.expect(json.user.role).to.eql('operador'));",
+              "pm.environment.set('operatorAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login administrador QA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna token administrador', () => pm.expect(json.user.role).to.eql('administrador'));",
+              "pm.environment.set('adminAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-07.1 Requerir token para areas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/areas"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-07.2 Requerir token para usuarios",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-02.1 Crear area como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{areaName}}\",\n  \"responsable\": \"{{areaResponsible}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna area creada', () => { pm.expect(json.name).to.eql(pm.environment.get('areaName')); pm.expect(json.responsable).to.eql(pm.environment.get('areaResponsible')); });",
+              "pm.environment.set('areaId', String(json.id));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-01.1 Listar areas como operador",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/areas"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Listado contiene area QA', () => pm.expect(json.some((area) => String(area.id) === pm.environment.get('areaId'))).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-01.2 Consultar area como operador",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{areaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna nombre y responsable', () => { pm.expect(String(json.id)).to.eql(pm.environment.get('areaId')); pm.expect(json.name).to.eql(pm.environment.get('areaName')); pm.expect(json.responsable).to.eql(pm.environment.get('areaResponsible')); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-03.1 Operador no crea areas",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{blockedAreaName}}\",\n  \"responsable\": \"No debe crearse\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-03.2 Operador no actualiza areas",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas/{{areaId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Cambio no autorizado\",\n  \"responsable\": \"Cambio no autorizado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-03.3 Operador no elimina areas",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{areaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-03.4 Area permanece sin cambios",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{areaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Conserva datos originales', () => { pm.expect(json.name).to.eql(pm.environment.get('areaName')); pm.expect(json.responsable).to.eql(pm.environment.get('areaResponsible')); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-ADM-04 Rechazar area duplicada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{areaName}}\",\n  \"responsable\": \"Responsable duplicado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|p2002|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-05.1 Rechazar area sin campos obligatorios",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"responsable\": \"Responsable sin area\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-05.2 Rechazar campo desconocido en area",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{unknownAreaName}}\",\n  \"responsable\": \"Responsable campo extra\",\n  \"campo_no_permitido\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) pm.environment.set('invalidAreaId', String(pm.response.json().id));",
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Identifica campo desconocido', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('campo_no_permitido'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-06.1 Consultar area inexistente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{missingEntityId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica area', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.match(/área|area/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-06.2 Actualizar area inexistente",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas/{{missingEntityId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Area inexistente\",\n  \"responsable\": \"Nadie\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica area', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.match(/área|area/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-06.3 Eliminar area inexistente",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{missingEntityId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica area', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.match(/área|area/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-02.2 Actualizar area como administrador",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/areas/{{areaId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{areaNameUpdated}}\",\n  \"responsable\": \"{{areaResponsibleUpdated}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Actualiza nombre y responsable', () => { pm.expect(json.name).to.eql(pm.environment.get('areaNameUpdated')); pm.expect(json.responsable).to.eql(pm.environment.get('areaResponsibleUpdated')); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-02.3 Eliminar area como administrador",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{areaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Retorna area eliminada', () => pm.expect(String(pm.response.json().id)).to.eql(pm.environment.get('areaId')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-ADM-02.4 Consultar area eliminada",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{areaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar eventual area de campo desconocido",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/areas/{{invalidAreaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-02 Crear usuario como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"full_name\": \"{{userFullName}}\",\n  \"role\": \"operador\",\n  \"status\": \"activo\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Crea usuario sin password', () => { pm.expect(json.username).to.eql(pm.environment.get('userUsername')); pm.expect(json.email).to.eql(pm.environment.get('userEmail')); pm.expect(json.role).to.eql('operador'); pm.expect(json.status).to.eql('activo'); pm.expect(json).to.not.have.property('password'); });",
+              "pm.environment.set('userId', String(json.id));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-01.1 Listar usuarios como administrador",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const users = pm.response.json();",
+              "pm.test('Listado contiene usuario QA', () => pm.expect(users.some((user) => String(user.id) === pm.environment.get('userId'))).to.eql(true));",
+              "pm.test('Listado no expone passwords', () => users.forEach((user) => pm.expect(user).to.not.have.property('password')));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-01.2 Consultar usuario como administrador",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna usuario correcto', () => pm.expect(json.username).to.eql(pm.environment.get('userUsername')));",
+              "pm.test('No expone password', () => pm.expect(json).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-08 No exponer password en consulta individual",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('No expone password ni hash', () => { pm.expect(json).to.not.have.property('password'); pm.expect(JSON.stringify(json)).to.not.match(/\\$2[aby]\\$/); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-05.1 Operador no lista usuarios",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-USR-05.2 Operador no consulta usuarios",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-USR-05.3 Operador no crea usuarios",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"qa_forbidden_user\",\n  \"email\": \"qa_forbidden@example.test\",\n  \"password\": \"QaForbidden123*\",\n  \"full_name\": \"QA Forbidden\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-USR-05.4 Operador no actualiza usuarios",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"full_name\": \"Cambio no autorizado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-USR-05.5 Operador no elimina usuarios",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+              "pm.test('Mensaje de permisos', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('permisos'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{operatorAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-INV-USR-06.1 Rechazar username duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{alternateEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"full_name\": \"QA Username Duplicado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|p2002|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-06.2 Rechazar email duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{alternateUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"full_name\": \"QA Email Duplicado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('No expone error interno', () => pm.expect(String(pm.response.json().message || '')).to.not.match(/prisma|p2002|sql/i));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-07.1 Rechazar usuario sin password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{missingPasswordUsername}}\",\n  \"email\": \"{{missingPasswordEmail}}\",\n  \"full_name\": \"QA Sin Password\",\n  \"role\": \"operador\",\n  \"status\": \"activo\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) pm.environment.set('missingPasswordUserId', String(pm.response.json().id));",
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Identifica password obligatorio', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.match(/password|contraseña/));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-07.2 Rechazar campo desconocido en usuario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{extraFieldUsername}}\",\n  \"email\": \"{{extraFieldEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"full_name\": \"QA Campo Extra\",\n  \"role\": \"operador\",\n  \"status\": \"activo\",\n  \"campo_no_permitido\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) pm.environment.set('extraFieldUserId', String(pm.response.json().id));",
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Identifica campo desconocido', () => pm.expect([].concat(pm.response.json().message || []).join(' ').toLowerCase()).to.include('campo_no_permitido'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-10.1 Rechazar rol invalido",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"superusuario\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-10.2 Rechazar estado invalido",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"eliminado\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-03.1 Actualizar usuario y password",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"full_name\": \"{{userFullNameUpdated}}\",\n  \"password\": \"{{userNewPassword}}\",\n  \"role\": \"operador\",\n  \"status\": \"activo\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Actualiza datos permitidos', () => { pm.expect(json.full_name).to.eql(pm.environment.get('userFullNameUpdated')); pm.expect(json.role).to.eql('operador'); pm.expect(json.status).to.eql('activo'); });",
+              "pm.test('No expone password', () => pm.expect(json).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-03.2 Login con password actualizado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"password\": \"{{userNewPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Autentica usuario actualizado', () => pm.expect(pm.response.json().user.username).to.eql(pm.environment.get('userUsername')));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-INV-USR-03.3 Marcar usuario inactivo",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"inactivo\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Estado inactivo persistido', () => pm.expect(pm.response.json().status).to.eql('inactivo'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-03.4 Rechazar login de usuario inactivo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"password\": \"{{userNewPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No entrega tokens', () => { const json = pm.response.json(); pm.expect(json).to.not.have.property('access_token'); pm.expect(json).to.not.have.property('refresh_token'); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-INV-USR-09.1 Consultar usuario inexistente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{missingEntityId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica usuario', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('usuario'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-09.2 Actualizar usuario inexistente",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{missingEntityId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"full_name\": \"Usuario inexistente\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica usuario', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('usuario'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-09.3 Eliminar usuario inexistente",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{missingEntityId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+              "pm.test('Mensaje identifica usuario', () => pm.expect(String(pm.response.json().message || '').toLowerCase()).to.include('usuario'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-04.1 Eliminar usuario",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna usuario eliminado sin password', () => { pm.expect(String(json.id)).to.eql(pm.environment.get('userId')); pm.expect(json.username).to.eql(pm.environment.get('userUsername')); pm.expect(json).to.not.have.property('password'); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "CPI-INV-USR-04.2 Consultar usuario eliminado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar eventual usuario sin password",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{missingPasswordUserId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));",
+              "if (pm.response.code === 200) pm.test('Cleanup no expone password', () => pm.expect(pm.response.json()).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar eventual usuario con campo desconocido",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{extraFieldUserId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));",
+              "if (pm.response.code === 200) pm.test('Cleanup no expone password', () => pm.expect(pm.response.json()).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "Cleanup - Eliminar operador QA",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{operatorUserId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cleanup controlado', () => pm.expect([200, 404]).to.include(pm.response.code));",
+              "if (pm.response.code === 200) pm.test('Cleanup no expone password', () => pm.expect(pm.response.json()).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

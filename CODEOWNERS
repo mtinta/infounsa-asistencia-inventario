@@ -1,0 +1,30 @@
+# ==============================================================================
+# GitLab CODEOWNERS - InfoUNSA Monorepo
+# ==============================================================================
+
+# Por defecto, todos los archivos del repositorio pertenecen al Project Manager
+*                                                   @yoset
+
+# Documentación del proyecto e Índices formales
+/docs/                                              @yoset @emerson @miguel
+
+# Infraestructura versionable (Docker, Nginx, CI/CD, deploys)
+/infra/                                             @emerson @mario @yoset
+/.gitlab-ci.yml                                     @emerson @mario @yoset
+/docker-compose.yml                                 @emerson @mario @yoset
+
+# Carpeta de Aseguramiento de Calidad y Pruebas
+/qa/                                                @miguel @elvis @mario
+
+# Módulo de Control de Asistencia (Desarrolladores y Tech Lead)
+/apps/asistencia/                                   @emerson @luis @melvin
+/apps/asistencia/api/                               @luis @melvin
+/apps/asistencia/desktop/                           @marco @maria
+
+# Módulo de Gestión de Inventario (Desarrolladores y Tech Lead)
+/apps/inventario/                                   @emerson @luis @melvin
+/apps/inventario/api/                               @luis @melvin
+/apps/inventario/desktop/                           @marco @maria
+
+# Portal General (Frontend ligero)
+/apps/portal-general/                               @emerson @marco @maria

@@ -1,0 +1,56 @@
+{
+  "name": "infounsa-inventario-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "db:seed": "tsx prisma/seed.ts",
+    "start": "node dist/main.js",
+    "dev": "tsc && node --watch dist/main.js",
+    "postinstall": "prisma generate",
+    "test:integration:mysql": "node scripts/test-mysql-integration.mjs",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@infounsa/shared-config": "workspace:*",
+    "@infounsa/shared-types": "workspace:*",
+    "@nestjs/common": "11.1.24",
+    "@nestjs/core": "11.1.24",
+    "@nestjs/jwt": "11.0.2",
+    "@nestjs/passport": "11.0.5",
+    "@nestjs/platform-express": "11.1.24",
+    "@nestjs/throttler": "^6.3.0",
+    "@prisma/adapter-mariadb": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
+    "jsonwebtoken": "9.0.3",
+    "mysql2": "^3.24.4",
+    "nest-winston": "^1.10.2",
+    "passport-jwt": "4.0.1",
+    "pdfkit": "^0.19.1",
+    "prisma": "^7.10.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.1.27",
+    "@types/bcrypt": "^6.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.1",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "tsx": "^4.19.2",
+    "typescript": "6.0.3"
+  },
+  "overrides": {
+    "@hono/node-server": "1.19.13",
+    "multer": "2.4.0"
+  }
+}

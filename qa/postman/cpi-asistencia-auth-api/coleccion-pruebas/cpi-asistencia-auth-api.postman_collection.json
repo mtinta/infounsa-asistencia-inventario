@@ -1,0 +1,866 @@
+{
+  "info": {
+    "_postman_id": "ecf28983-5a04-4e7d-b59e-444daf5712c2",
+    "name": "CPI Asistencia - API de Autenticacion y Seguridad",
+    "description": "Implementacion Postman/Newman de autenticacion. La ausencia de JWT y la no exposicion de password se validan de forma canonica en la coleccion administrativa para evitar duplicados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - API asistencia saludable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('MySQL/MariaDB conectada', () => { pm.expect(json.status).to.eql('ok'); pm.expect(json.database).to.eql('connected'); });",
+              "pm.test('Identifica asistencia-api', () => pm.expect(json.service).to.eql('asistencia-api'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-01 Login administrador exitoso",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Entrega access y refresh token', () => { pm.expect(json.access_token).to.be.a('string').and.not.empty; pm.expect(json.refresh_token).to.be.a('string').and.not.empty; });",
+              "pm.test('Identifica al administrador', () => pm.expect(json.user.role).to.eql('administrador'));",
+              "pm.test('No expone password', () => pm.expect(json.user).not.to.have.property('password'));",
+              "pm.environment.set('adminAccessToken', json.access_token);",
+              "pm.environment.set('adminRefreshToken', json.refresh_token);",
+              "pm.environment.set('adminUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-02.1 Rechazar password incorrecto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"incorrecta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No entrega tokens', () => { const json = pm.response.json(); pm.expect(json).not.to.have.property('access_token'); pm.expect(json).not.to.have.property('refresh_token'); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-02.2 Rechazar usuario inexistente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"usuario_que_no_existe\",\n  \"password\": \"QaAsistencia123*\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('Respuesta no distingue la credencial fallida', () => pm.expect(pm.response.json().message).to.eql('Credenciales invalidas'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-05.1 Rechazar login incompleto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Informa validacion', () => pm.expect(pm.response.json().message).to.be.an('array').that.is.not.empty);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-03 Registrar usuario QA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{qaFullName}}\",\n  \"email\": \"{{qaEmail}}\",\n  \"username\": \"{{qaUsername}}\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Crea cuenta activa con rol predeterminado', () => { pm.expect(json.user.status).to.eql('activo'); pm.expect(json.user.role_id).to.eql(3); });",
+              "pm.test('No expone password', () => pm.expect(json.user).not.to.have.property('password'));",
+              "pm.environment.set('qaUserId', String(json.user.id));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-06.1 Rechazar username duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{qaFullName}}\",\n  \"email\": \"{{qaAlternateEmail}}\",\n  \"username\": \"{{qaUsername}}\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('Identifica username duplicado', () => pm.expect(pm.response.json().message).to.include('usuario'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-06.2 Rechazar email duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{qaFullName}}\",\n  \"email\": \"{{qaEmail}}\",\n  \"username\": \"{{qaAlternateUsername}}\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+              "pm.test('Identifica correo duplicado', () => pm.expect(pm.response.json().message).to.include('correo'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-05.2 Rechazar nombre corto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Q\",\n  \"email\": \"{{qaAlternateEmail}}\",\n  \"username\": \"{{qaAlternateUsername}}\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-05.3 Rechazar email invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{qaFullName}}\",\n  \"email\": \"correo-invalido\",\n  \"username\": \"{{qaAlternateUsername}}\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-05.4 Rechazar username corto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{qaFullName}}\",\n  \"email\": \"{{qaAlternateEmail}}\",\n  \"username\": \"qa1\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-05.5 Rechazar password corto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{qaFullName}}\",\n  \"email\": \"{{qaAlternateEmail}}\",\n  \"username\": \"{{qaAlternateUsername}}\",\n  \"password\": \"corta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-05.6 Rechazar campo desconocido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"{{qaFullName}}\",\n  \"email\": \"{{qaAlternateEmail}}\",\n  \"username\": \"{{qaAlternateUsername}}\",\n  \"password\": \"{{qaPassword}}\",\n  \"role\": \"administrador\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+              "pm.test('Rechaza propiedad no permitida', () => pm.expect(JSON.stringify(pm.response.json())).to.include('role'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-04.1 Renovar access token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"{{adminRefreshToken}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Entrega nuevo access token', () => pm.expect(json.access_token).to.be.a('string').and.not.empty);",
+              "pm.environment.set('renewedAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-04.2 Rechazar refresh malformado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/refresh",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh_token\": \"token-invalido\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No entrega access token', () => pm.expect(pm.response.json()).not.to.have.property('access_token'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-08 Rechazar JWT malformado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{invalidAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-USER-01 Listar usuarios sin password",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/users"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna arreglo', () => pm.expect(json).to.be.an('array'));",
+              "pm.test('Ningun usuario expone password', () => json.forEach((user) => pm.expect(user).not.to.have.property('password')));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-07.1 Marcar usuario inactivo",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{qaUserId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"inactivo\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Estado inactivo persistido', () => pm.expect(pm.response.json().status).to.eql('inactivo'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-07.2 Rechazar login inactivo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{qaUsername}}\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('Informa estado bloqueado', () => pm.expect(pm.response.json().message).to.include('inactivo'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Reactivar usuario QA",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/users/{{qaUserId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"activo\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Estado activo restaurado', () => pm.expect(pm.response.json().status).to.eql('activo'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-07.3 Eliminar usuario logicamente",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/users/{{qaUserId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Confirma eliminacion', () => pm.expect(pm.response.json().deleted).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUTH-07.4 Rechazar login eliminado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{qaUsername}}\",\n  \"password\": \"{{qaPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+              "pm.test('No entrega token', () => pm.expect(pm.response.json()).not.to.have.property('access_token'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === 'Precondicion - API asistencia saludable' || !pm.environment.get('authRunId')) {",
+          "  const runId = Date.now().toString();",
+          "  pm.environment.set('authRunId', runId);",
+          "  pm.environment.set('qaUsername', `qa_ast_auth_${runId}`);",
+          "  pm.environment.set('qaAlternateUsername', `qa_ast_auth_alt_${runId}`);",
+          "  pm.environment.set('qaEmail', `qa_ast_auth_${runId}@example.test`);",
+          "  pm.environment.set('qaAlternateEmail', `qa_ast_auth_alt_${runId}@example.test`);",
+          "  pm.environment.set('qaPassword', 'QaAsistencia123*');",
+          "  pm.environment.set('qaFullName', `QA Asistencia Auth ${runId}`);",
+          "  pm.environment.set('missingUserId', '2147483647');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminAccessToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

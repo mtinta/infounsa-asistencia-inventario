@@ -1,0 +1,1056 @@
+{
+  "info": {
+    "_postman_id": "214dd2f3-b64d-4429-a46e-aa7877b7774b",
+    "name": "CPI Asistencia - Reportes y Auditoria",
+    "description": "Implementacion Postman/Newman de reportes y auditoria. CPI-AST-AUD-04 valida la exportacion administrativa y CPI-AST-RPT-05 centraliza todos los controles de autorizacion de reportes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - API asistencia saludable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('MySQL/MariaDB conectada', () => { pm.expect(json.status).to.eql('ok'); pm.expect(json.database).to.eql('connected'); });",
+              "pm.test('Identifica asistencia-api', () => pm.expect(json.service).to.eql('asistencia-api'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Rol administrador', () => pm.expect(json.user.role).to.eql('administrador'));",
+              "pm.environment.set('adminAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Login operador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{operatorUsername}}\",\n  \"password\": \"{{operatorPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Rol operador', () => pm.expect(json.user.role).to.eql('operador'));",
+              "pm.environment.set('operatorAccessToken', json.access_token);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Setup - Crear marcas controladas",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/sync",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\",\n  \"registros\": [\n    {\n      \"id_operacion_local\": \"{{reportEntryOperation}}\",\n      \"usuario_id\": \"USR-001\",\n      \"fecha_hora_marca\": \"{{reportEntryDate}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    },\n    {\n      \"id_operacion_local\": \"{{reportExitOperation}}\",\n      \"usuario_id\": \"USR-001\",\n      \"fecha_hora_marca\": \"{{reportExitDate}}\",\n      \"tipo\": \"salida\",\n      \"es_menor_manual\": false\n    },\n    {\n      \"id_operacion_local\": \"{{reportFilterOperation}}\",\n      \"usuario_id\": \"USR-002\",\n      \"fecha_hora_marca\": \"{{reportFilterDate}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    },\n    {\n      \"id_operacion_local\": \"{{reportEditOperation}}\",\n      \"usuario_id\": \"USR-004\",\n      \"fecha_hora_marca\": \"{{reportEditDate}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    },\n    {\n      \"id_operacion_local\": \"{{reportDeleteOperation}}\",\n      \"usuario_id\": \"USR-003\",\n      \"fecha_hora_marca\": \"{{reportDeleteDate}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false\n    },\n    {\n      \"id_operacion_local\": \"{{reportMinorOperation}}\",\n      \"usuario_id\": null,\n      \"fecha_hora_marca\": \"{{reportMinorDate}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": true,\n      \"datos_menor\": { \"nombre_completo\": \"Menor QA\" }\n    },\n    {\n      \"id_operacion_local\": \"{{reportVisitorOperation}}\",\n      \"usuario_id\": null,\n      \"fecha_hora_marca\": \"{{reportVisitorDate}}\",\n      \"tipo\": \"entrada\",\n      \"es_menor_manual\": false,\n      \"visitante_nombre\": \"Visitante Reportes QA\",\n      \"visitante_motivo\": \"Auditoria\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Inserta siete marcas', () => { pm.expect(json.stats.recibidos).to.eql(7); pm.expect(json.stats.insertados).to.eql(7); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUD-01.1 Crear marca manual",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/create-manual",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dni\": \"70000005\",\n  \"tipo\": \"entrada\",\n  \"fecha_hora_marca\": \"{{reportManualDate}}\",\n  \"observacion\": \"Marca manual QA\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Marca manual auditada como nueva', () => { pm.expect(json.id_operacion_local).to.match(/^manual-/); pm.expect(json.estado_auditoria).to.eql('nuevo'); });",
+              "pm.environment.set('manualAttendanceId', json.id);",
+              "pm.environment.set('manualOperationId', json.id_operacion_local);"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUD-01.2 Rechazar DNI inexistente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/create-manual",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dni\": \"99999999\",\n  \"tipo\": \"entrada\",\n  \"fecha_hora_marca\": \"{{reportManualDate}}\",\n  \"terminal_id\": \"{{terminalId}}\",\n  \"sede_id\": \"{{sedeId}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUD-02.1 Editar marca por ID local",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/{{reportEditOperation}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"salida\",\n  \"observacion\": \"Marca editada por QA\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Actualiza tipo y auditoria', () => { pm.expect(json.tipo).to.eql('salida'); pm.expect(json.estado_auditoria).to.eql('editado'); });",
+              "pm.test('Actualiza observacion', () => pm.expect(json.observacion).to.eql('Marca editada por QA'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUD-02.2 Rechazar edicion inexistente",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/attendance/attendance-no-existe",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"salida\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUD-03.1 Anular marca por ID local",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportDeleteOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Borrado logico', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUD-03.2 Rechazar anulacion inexistente",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/attendance-no-existe"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-08 Reporte JSON por rango",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report?startDate={{reportStartDate}}&endDate={{reportEndDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Retorna resumen por usuario', () => pm.expect(json).to.be.an('array').that.is.not.empty);",
+              "pm.test('Contabiliza entrada y salida de USR-001', () => { const row = json.find((item) => item.user_id === 'USR-001'); pm.expect(row).to.exist; pm.expect(row.total_entradas).to.eql(1); pm.expect(row.total_salidas).to.eql(1); });",
+              "pm.test('Excluye marca borrada de USR-003', () => pm.expect(json.some((item) => item.user_id === 'USR-003')).to.eql(false));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-13 Consultar estadisticas",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/stats?startDate={{reportStartDate}}&endDate={{reportEndDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Total excluye borrados', () => pm.expect(json.total_marcas).to.eql(7));",
+              "pm.test('Cuenta seis usuarios unicos', () => pm.expect(json.usuarios_con_marcas).to.eql(6));",
+              "pm.test('Agrupa entrada y salida', () => { const map = Object.fromEntries(json.por_tipo.map((row) => [row.tipo, row.total])); pm.expect(map.entrada).to.eql(5); pm.expect(map.salida).to.eql(2); });"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-RPT-02.1 Aceptar rango exacto de 90 dias",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report?startDate={{exact90StartDate}}&endDate={{exact90EndDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-ATT-09 Rechazar rango de 91 dias",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report?startDate={{longStartDate}}&endDate={{longEndDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-RPT-02.2 Rechazar rango invertido",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report?startDate={{invertedStartDate}}&endDate={{invertedEndDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-RPT-02.3 Rechazar fecha ausente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report?startDate={{reportStartDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-RPT-02.4 Rechazar fecha invalida",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report?startDate=fecha-invalida&endDate={{reportEndDate}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-RPT-03.1 Exportar PDF resumido",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report/pdf?startDate={{reportStartDate}}&endDate={{reportEndDate}}&type=resumido"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('MIME PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));",
+              "pm.test('Archivo no vacio', () => pm.expect(pm.response.responseSize).to.be.above(100));",
+              "pm.test('Nombre de descarga', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('reporte-asistencia.pdf'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-RPT-03.2 Exportar PDF detallado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report/pdf?startDate={{reportStartDate}}&endDate={{reportEndDate}}&type=detallado&filterRole=usuario"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('MIME PDF', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf'));",
+              "pm.test('Archivo no vacio', () => pm.expect(pm.response.responseSize).to.be.above(100));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-RPT-04 Exportar Excel",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report/excel?startDate={{reportStartDate}}&endDate={{reportEndDate}}&filterType=entrada"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('MIME XLSX', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));",
+              "pm.test('Archivo no vacio', () => pm.expect(pm.response.responseSize).to.be.above(100));",
+              "pm.test('Nombre de descarga', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('reporte-asistencia.xlsx'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CPI-AST-AUD-04 Exportar auditoria como administrador",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/report/audit?startDate={{reportStartDate}}&endDate={{reportEndDate}}&filterType=entrada"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('MIME XLSX', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));",
+              "pm.test('Archivo no vacio', () => pm.expect(pm.response.responseSize).to.be.above(100));",
+              "pm.test('Nombre de auditoria', () => pm.expect(pm.response.headers.get('Content-Disposition')).to.include('reporte-auditoria-asistencia.xlsx'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca entrada",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportEntryOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca salida",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportExitOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca filtro",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportFilterOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca editada",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportEditOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca borrada",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportDeleteOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca menor",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportMinorOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca visitante",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{reportVisitorOperation}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Cleanup - Anular marca manual",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/attendance/{{manualOperationId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+              "pm.test('Queda borrada logicamente', () => pm.expect(pm.response.json().estado_auditoria).to.eql('borrado'));"
+            ]
+          }
+        }
+      ],
+      "response": [],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminAccessToken}}",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === 'Precondicion - API asistencia saludable' || !pm.environment.get('reportRunId')) {",
+          "  const runId = Date.now().toString();",
+          "  const base = new Date(Date.now() + 30 * 86400000);",
+          "  const atMinutes = (minutes) => new Date(base.getTime() + minutes * 60000).toISOString();",
+          "  pm.environment.set('reportRunId', runId);",
+          "  pm.environment.set('reportEntryOperation', `report-entry-${runId}`);",
+          "  pm.environment.set('reportExitOperation', `report-exit-${runId}`);",
+          "  pm.environment.set('reportFilterOperation', `report-filter-${runId}`);",
+          "  pm.environment.set('reportEditOperation', `report-edit-${runId}`);",
+          "  pm.environment.set('reportDeleteOperation', `report-delete-${runId}`);",
+          "  pm.environment.set('reportMinorOperation', `report-minor-${runId}`);",
+          "  pm.environment.set('reportVisitorOperation', `report-visitor-${runId}`);",
+          "  pm.environment.set('reportEntryDate', atMinutes(0));",
+          "  pm.environment.set('reportExitDate', atMinutes(5));",
+          "  pm.environment.set('reportFilterDate', atMinutes(10));",
+          "  pm.environment.set('reportEditDate', atMinutes(15));",
+          "  pm.environment.set('reportDeleteDate', atMinutes(20));",
+          "  pm.environment.set('reportMinorDate', atMinutes(25));",
+          "  pm.environment.set('reportVisitorDate', atMinutes(30));",
+          "  pm.environment.set('reportManualDate', atMinutes(35));",
+          "  pm.environment.set('reportStartDate', new Date(base.getTime() - 3600000).toISOString());",
+          "  pm.environment.set('reportEndDate', new Date(base.getTime() + 86400000).toISOString());",
+          "  let seededDay = base.getDay();",
+          "  if (seededDay === 0) seededDay = 7;",
+          "  pm.environment.set('excludedDayOfWeek', String((seededDay % 7) + 1));",
+          "  const now = new Date();",
+          "  pm.environment.set('exact90StartDate', new Date(now.getTime() - 90 * 86400000).toISOString());",
+          "  pm.environment.set('exact90EndDate', now.toISOString());",
+          "  pm.environment.set('longStartDate', new Date(now.getTime() - 91 * 86400000).toISOString());",
+          "  pm.environment.set('longEndDate', now.toISOString());",
+          "  pm.environment.set('invertedStartDate', new Date(now.getTime() + 86400000).toISOString());",
+          "  pm.environment.set('invertedEndDate', now.toISOString());",
+          "}"
+        ]
+      }
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminAccessToken}}",
+        "type": "string"
+      }
+    ]
+  }
+}

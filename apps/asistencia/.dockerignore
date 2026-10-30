@@ -1,0 +1,11 @@
+api/node_modules
+api/dist
+api/coverage
+api/*.tsbuildinfo
+desktop/node_modules
+desktop/dist
+desktop/dist-electron
+desktop/coverage
+**/.env
+**/.env.*
+!**/.env.example
