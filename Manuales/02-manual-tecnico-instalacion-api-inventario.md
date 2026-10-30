@@ -38,6 +38,8 @@ pnpm -v     # 9 o superior
 
 ## 2. Instalación
 
+> **Antes de empezar:** todos los comandos se ejecutan en **Windows PowerShell como administrador** (el indicador empieza con `PS`, por ejemplo `PS C:\Plataforma>`). Si ves `C:\Plataforma>` sin `PS`, estás en CMD: escribe `powershell` y pulsa Enter. Además, las rutas de los ejemplos usan `C:\Plataforma\infounsa-asistencia-inventario`; **cámbialas por la carpeta donde clonaste** el repositorio. Si esa carpeta está en otra unidad (por ejemplo `D:`), usa `cd /d D:\ruta` en CMD o `Set-Location D:\ruta` en PowerShell.
+
 ### a. Clonar el repositorio
 
 En PowerShell o CMD, en una ruta corta y sin tildes (por ejemplo `C:\Plataforma`):
@@ -87,22 +89,68 @@ cd infounsa-asistencia-inventario
 
 ### c. Creación del archivo `.env`
 
-La API lee el archivo `.env` de su propia carpeta. Se crea **antes de instalar las dependencias** (paso d), porque la instalación genera el cliente de Prisma y necesita `DATABASE_URL`. En PowerShell:
+El `.env` guarda la configuración de la API (puerto, conexión a MySQL, secreto de sesión). Debe quedar en la carpeta de la API, con el nombre exacto `.env`. Se crea **antes de instalar las dependencias** (paso d), porque la instalación genera el cliente de Prisma y necesita `DATABASE_URL`.
+
+**1. Copia la plantilla** que trae el repositorio (en PowerShell, desde la carpeta donde clonaste):
 
 ```powershell
-cd C:\Plataforma\infounsa-asistencia-inventario\apps\inventario\api
-@"
-PORT=43001
-NODE_ENV=development
-DATABASE_URL=mysql://infounsa:<contraseña_segura>@localhost:3306/infounsa_inventario
-JWT_SECRET_INVENTARIO=<cadena larga y aleatoria>
-INVENTARIO_ALLOWED_ORIGINS=http://localhost:43001,http://127.0.0.1:43001
-"@ | Set-Content .env -Encoding ascii
+cd <carpeta-del-repositorio>\apps\inventario\api
+copy .env.example .env
 ```
 
-> Usa `-Encoding ascii`: con `utf8`, Windows PowerShell 5.1 agrega una marca BOM que impide leer la primera variable (`PORT`).
-> Si la contraseña contiene `@`, `:`, `/` o `#`, escríbela codificada en la URL (por ejemplo `@` → `%40`).
-> Agrega a `INVENTARIO_ALLOWED_ORIGINS` el origen de cualquier aplicación web que consuma la API (separados por comas).
+**2. Edítalo con el Bloc de notas:**
+
+```powershell
+notepad .env
+```
+
+Cambia **solo** los valores que dicen `CAMBIAR`:
+
+| Variable | Qué poner |
+| :--- | :--- |
+| `DATABASE_URL` | Sustituye `CAMBIAR_PASSWORD` por la contraseña del usuario `infounsa` que creaste en el paso b. Queda así: `mysql://infounsa:MiClave123@localhost:3306/infounsa_inventario` |
+| `JWT_SECRET_INVENTARIO` | Una cadena larga y aleatoria (ver abajo). Sin espacios |
+| `INVENTARIO_ALLOWED_ORIGINS` | Déjala como está; agrega más orígenes separados por comas solo si una aplicación web consume la API |
+
+Guarda con `Ctrl + S` y cierra el Bloc de notas. No agregues comillas, ni espacios alrededor del `=`, y deja cada variable en su propia línea.
+
+**3. Genera el secreto aleatorio** (necesario: no dejes el valor de ejemplo; copia el resultado y pégalo como valor de `JWT_SECRET_INVENTARIO`):
+
+```powershell
+$b = New-Object byte[] 32
+(New-Object Security.Cryptography.RNGCryptoServiceProvider).GetBytes($b)
+($b | ForEach-Object { $_.ToString('x2') }) -join ''
+```
+
+**4. Comprueba que el archivo existe con el nombre correcto:**
+
+```powershell
+dir .env*
+```
+
+Deben aparecer `.env` y `.env.example`. Si ves `.env.txt`, renómbralo: `ren .env.txt .env`.
+
+> **Notas:**
+> - Si la contraseña de MySQL tiene caracteres especiales (`@`, `:`, `/`, `#`, `%`), escríbelos codificados en la URL (por ejemplo `@` → `%40`, `#` → `%23`) o usa una contraseña sin ellos.
+> - No guardes el archivo como "UTF-8 con BOM" (en el Bloc de notas antiguo, no cambies la codificación al guardar): impide leer la primera variable.
+
+**Alternativa: crearlo con un solo comando de PowerShell**
+
+Solo en **PowerShell** (no en CMD). Reemplaza los valores **sin** los signos `< >`. La línea `@'` debe terminar la línea y `'@` debe ir **al inicio de su línea, sin espacios delante**:
+
+```powershell
+cd <carpeta-del-repositorio>\apps\inventario\api
+@'
+PORT=43001
+NODE_ENV=development
+DATABASE_URL=mysql://infounsa:TU_PASSWORD@localhost:3306/infounsa_inventario
+JWT_SECRET_INVENTARIO=TU_SECRETO_ALEATORIO
+INVENTARIO_ALLOWED_ORIGINS=http://localhost:43001,http://127.0.0.1:43001
+'@ | Set-Content .env -Encoding ascii
+```
+
+(Con `@'...'@` los caracteres `$` y `` ` `` de la contraseña no se interpretan. `-Encoding ascii` evita el BOM.)
+
 
 ### d. Instalación de dependencias
 
