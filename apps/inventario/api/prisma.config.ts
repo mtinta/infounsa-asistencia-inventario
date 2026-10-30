@@ -1,11 +1,12 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-const databaseUrl = process.env["DATABASE_URL"] || process.env["INVENTARIO_DATABASE_URL"];
-
-if (!databaseUrl?.trim()) {
-  throw new Error("DATABASE_URL o INVENTARIO_DATABASE_URL es requerido para Prisma Inventario.");
-}
+// Durante `pnpm install` (postinstall: prisma generate) aun no existe el .env; generar el cliente no
+// necesita conexion, por eso hay un valor por defecto. Los comandos que si se conectan usan DATABASE_URL del .env.
+const databaseUrl =
+  process.env["DATABASE_URL"] ||
+  process.env["INVENTARIO_DATABASE_URL"] ||
+  "mysql://root:password@localhost:3306/infounsa_inventario";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
