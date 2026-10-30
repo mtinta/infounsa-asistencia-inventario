@@ -141,7 +141,7 @@ Debe crear `infounsa_asistencia-AAAAMMDD-HHMM.sql.zip` e `infounsa_inventario-AA
 
 ```powershell
 $accion = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument `
-  '-NoProfile -ExecutionPolicy Bypass -Command "$env:MYSQL_PWD=''<contraseña>''; & ''C:\Plataforma\plataforma-infounsa\scripts\respaldar-bases.ps1'' -Destino D:\Respaldos\InfoUNSA -MysqlDump ''C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe''"'
+  '-NoProfile -ExecutionPolicy Bypass -Command "$env:MYSQL_PWD=''<contraseña>''; & ''C:\Plataforma\infounsa-asistencia-inventario\scripts\respaldar-bases.ps1'' -Destino D:\Respaldos\InfoUNSA -MysqlDump ''C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe''"'
 $disparador = New-ScheduledTaskTrigger -Daily -At 2:00am
 Register-ScheduledTask -TaskName "InfoUNSA-Respaldo" -Action $accion -Trigger $disparador -User "SYSTEM" -RunLevel Highest
 ```
@@ -180,7 +180,7 @@ docker exec inventario-db mysqldump -u root -p --single-transaction --routines -
 ### 6.1. Servidor (APIs)
 
 ```powershell
-cd C:\Plataforma\plataforma-infounsa
+cd C:\Plataforma\infounsa-asistencia-inventario
 git pull
 pnpm install
 npm run build --prefix apps\asistencia\api
@@ -213,7 +213,7 @@ La instalación crea el usuario **`admin`** con contraseña **`admin123`** (y `a
 - **La cuenta `admin`** (si nadie puede entrar): ejecuta el seed con la opción de restablecimiento, en la carpeta de la API correspondiente. Esto vuelve a fijar la contraseña de las cuentas iniciales y **no borra datos**:
 
   ```powershell
-  cd C:\Plataforma\plataforma-infounsa\apps\asistencia\api     # o apps\inventario\api
+  cd C:\Plataforma\infounsa-asistencia-inventario\apps\asistencia\api     # o apps\inventario\api
   $env:NODE_ENV = "development"          # el seed no se ejecuta con NODE_ENV=production
   $env:SEED_RESET_PASSWORDS = "true"
   $env:SEED_ADMIN_PASSWORD = "<nueva contraseña, mínimo 8 caracteres>"

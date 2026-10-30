@@ -23,7 +23,7 @@ Abra la terminal (PowerShell o Git Bash) y clone el repositorio oficial de la pl
 
 ```bash
 git clone https://github.com/mtinta/infounsa-asistencia-inventario.git
-cd plataforma-infounsa
+cd infounsa-asistencia-inventario
 git checkout develop
 ```
 

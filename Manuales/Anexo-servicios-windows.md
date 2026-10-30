@@ -44,15 +44,15 @@ Repite para cada API cambiando los valores de la tabla:
 | | Asistencia | Inventario |
 | :--- | :--- | :--- |
 | Nombre del servicio | `AsistenciaAPI` | `InventarioAPI` |
-| Directorio | `C:\infounsa\plataforma-infounsa\apps\asistencia\api` | `C:\infounsa\plataforma-infounsa\apps\inventario\api` |
+| Directorio | `C:\infounsa\infounsa-asistencia-inventario\apps\asistencia\api` | `C:\infounsa\infounsa-asistencia-inventario\apps\inventario\api` |
 | Log | `asistencia-api` | `inventario-api` |
 
 ```powershell
 $nssm = "C:\nssm\nssm.exe"
 $node = (Get-Command node).Source
 $svc  = "AsistenciaAPI"
-$dir  = "C:\infounsa\plataforma-infounsa\apps\asistencia\api"
-$logs = "C:\infounsa\plataforma-infounsa\.run\logs"
+$dir  = "C:\infounsa\infounsa-asistencia-inventario\apps\asistencia\api"
+$logs = "C:\infounsa\infounsa-asistencia-inventario\.run\logs"
 New-Item -ItemType Directory -Force $logs | Out-Null
 
 & $nssm install $svc $node "dist\main.js"

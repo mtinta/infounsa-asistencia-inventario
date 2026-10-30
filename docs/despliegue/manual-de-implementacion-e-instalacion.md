@@ -213,7 +213,7 @@ El despliegue con Docker Compose encapsula las APIs NestJS y los servidores MySQ
 #### Paso 1: Clonar el Repositorio
 ```bash
 git clone https://github.com/mtinta/infounsa-asistencia-inventario.git
-cd plataforma-infounsa
+cd infounsa-asistencia-inventario
 git checkout develop
 ```
 

@@ -35,8 +35,8 @@ En PowerShell o CMD, en una ruta corta y sin tildes (por ejemplo `C:\Plataforma`
 
 ```powershell
 cd C:\Plataforma
-git clone https://github.com/mtinta/infounsa-asistencia-inventario.git plataforma-infounsa
-cd plataforma-infounsa
+git clone https://github.com/mtinta/infounsa-asistencia-inventario.git
+cd infounsa-asistencia-inventario
 ```
 
 (Si se te indicó una rama específica: `git fetch origin` y `git switch --track origin/<rama>`.)
@@ -46,7 +46,7 @@ cd plataforma-infounsa
 Desde la **raíz** del repositorio (el proyecto es un monorepo con paquetes compartidos, por eso se usa `pnpm` y no `npm install` dentro de la carpeta de la API):
 
 ```powershell
-cd C:\Plataforma\plataforma-infounsa
+cd C:\Plataforma\infounsa-asistencia-inventario
 pnpm install
 ```
 
@@ -85,7 +85,7 @@ pnpm install
 La API lee el archivo `.env` de su propia carpeta. En PowerShell:
 
 ```powershell
-cd C:\Plataforma\plataforma-infounsa\apps\asistencia\api
+cd C:\Plataforma\infounsa-asistencia-inventario\apps\asistencia\api
 @"
 PORT=43000
 NODE_ENV=development
@@ -115,7 +115,7 @@ npm run db:seed
 
 ### e. Compilación y ejecución del servidor
 
-En `C:\Plataforma\plataforma-infounsa\apps\asistencia\api`:
+En `C:\Plataforma\infounsa-asistencia-inventario\apps\asistencia\api`:
 
 1. Elimina compilaciones anteriores (si las hay):
 
@@ -180,7 +180,7 @@ Un servicio permite que la API arranque sola al encender o reiniciar el servidor
    | Campo | Valor |
    | :--- | :--- |
    | Path | `C:\Program Files\nodejs\node.exe` |
-   | Startup directory | `C:\Plataforma\plataforma-infounsa\apps\asistencia\api` |
+   | Startup directory | `C:\Plataforma\infounsa-asistencia-inventario\apps\asistencia\api` |
    | Arguments | `dist\main.js` |
    | Service name | `AsistenciaAPI` |
 
@@ -190,15 +190,15 @@ Un servicio permite que la API arranque sola al encender o reiniciar el servidor
 
 ```powershell
 $svc = "AsistenciaAPI"
-$dir = "C:\Plataforma\plataforma-infounsa\apps\asistencia\api"
-New-Item -ItemType Directory -Force C:\Plataforma\plataforma-infounsa\.run\logs | Out-Null
+$dir = "C:\Plataforma\infounsa-asistencia-inventario\apps\asistencia\api"
+New-Item -ItemType Directory -Force C:\Plataforma\infounsa-asistencia-inventario\.run\logs | Out-Null
 .\nssm.exe install $svc "C:\Program Files\nodejs\node.exe" "dist\main.js"
 .\nssm.exe set $svc AppDirectory $dir
 .\nssm.exe set $svc Start SERVICE_AUTO_START
 .\nssm.exe set $svc AppExit Default Restart
 .\nssm.exe set $svc AppRestartDelay 5000
-.\nssm.exe set $svc AppStdout "C:\Plataforma\plataforma-infounsa\.run\logs\asistencia-api.log"
-.\nssm.exe set $svc AppStderr "C:\Plataforma\plataforma-infounsa\.run\logs\asistencia-api.err.log"
+.\nssm.exe set $svc AppStdout "C:\Plataforma\infounsa-asistencia-inventario\.run\logs\asistencia-api.log"
+.\nssm.exe set $svc AppStderr "C:\Plataforma\infounsa-asistencia-inventario\.run\logs\asistencia-api.err.log"
 .\nssm.exe set $svc DependOnService MySQL80
 .\nssm.exe start $svc
 ```
@@ -206,7 +206,7 @@ New-Item -ItemType Directory -Force C:\Plataforma\plataforma-infounsa\.run\logs 
 **Automático para las dos APIs a la vez**, con el script del repositorio:
 
 ```powershell
-cd C:\Plataforma\plataforma-infounsa
+cd C:\Plataforma\infounsa-asistencia-inventario
 powershell -ExecutionPolicy Bypass -File scripts\instalar-servicios-nssm.ps1 -NssmPath C:\nssm\win64\nssm.exe -MySqlService MySQL80
 ```
 
@@ -231,7 +231,7 @@ Con el inicio automático, al reiniciar Windows Server la API arrancará sola.
 No requiere instalar nada. Desde la raíz del repositorio, en PowerShell como administrador:
 
 ```powershell
-cd C:\Plataforma\plataforma-infounsa
+cd C:\Plataforma\infounsa-asistencia-inventario
 
 # Si las bases de datos son un MySQL instalado en Windows (este manual):
 powershell -ExecutionPolicy Bypass -File scripts\instalar-autoarranque.ps1 -SinDocker
@@ -260,7 +260,7 @@ Detener: `powershell -File scripts\detener-servidores.ps1`. Quitar la tarea: `po
 **Actualizar la API** (con el servicio instalado):
 
 ```powershell
-cd C:\Plataforma\plataforma-infounsa
+cd C:\Plataforma\infounsa-asistencia-inventario
 git pull
 pnpm install
 npm run build --prefix apps\asistencia\api

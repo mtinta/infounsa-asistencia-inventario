@@ -56,8 +56,8 @@ Solo para compilar instaladores de Windows: Windows 10/11 x64 con las *Build Too
 Levanta las bases de datos y las APIs de Asistencia e Inventario con un solo comando. Es la opción más simple, pensada para **pruebas, demostración y desarrollo**: `docker-compose.yml` ejecuta las APIs en modo desarrollo (`NODE_ENV=development`, recarga automática) y en cada arranque corre el seed con datos de demostración. **Para producción** usa la instalación nativa con servicios de Windows (secciones 3 y 4, y los [manuales técnicos](Manuales/README.md)) o `docker-compose.prod.yml` con imágenes publicadas por el pipeline de CI; ver la [lista de verificación](#7-lista-de-verificación-para-producción).
 
 ```bash
-git clone https://github.com/mtinta/infounsa-asistencia-inventario.git plataforma-infounsa
-cd plataforma-infounsa
+git clone https://github.com/mtinta/infounsa-asistencia-inventario.git
+cd infounsa-asistencia-inventario
 
 # 1. Variables de entorno
 cp .env.example .env          # PowerShell: Copy-Item .env.example .env
@@ -117,8 +117,8 @@ FLUSH PRIVILEGES;
 **3.3. Instalar dependencias** (con Node.js y pnpm ya instalados, ver [Requisitos](#1-requisitos)):
 
 ```bash
-git clone https://github.com/mtinta/infounsa-asistencia-inventario.git plataforma-infounsa
-cd plataforma-infounsa
+git clone https://github.com/mtinta/infounsa-asistencia-inventario.git
+cd infounsa-asistencia-inventario
 pnpm install
 ```
 
